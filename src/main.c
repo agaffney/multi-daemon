@@ -23,7 +23,6 @@ void usage()
 int main(int argc, char *argv[])
 {
 	int optc;
-	int invarg = 0;
 
 	while ((optc = getopt_long(argc, argv, "hv", longopts, NULL)) != -1) {
 		switch (optc){
