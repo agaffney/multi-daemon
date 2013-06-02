@@ -9,18 +9,18 @@ static const struct option longopts[] = {
 	{ "help", no_argument, NULL, 'h' },
 	{ "version", no_argument, NULL, 'v' },
 	{ "debug", no_argument, NULL, 'd' },
-	{ "type", required_argument, NULL, 't' },
-	{ "port", required_argument, NULL, 'p' },
+	{ "config", required_argument, NULL, 'c' },
+	{ "pidfile", required_argument, NULL, 'p' },
 	{ NULL, 0, NULL, 0 }
 };
 
 static const char help_string[] =
-	"usage: " PROJECT_BINARY_NAME " [OPTION]...\n\n"
+	"usage: " PROJECT_BINARY_NAME " [OPTIONS] <service>\n\n"
 	"-h, --help       display this help and exit\n"
 	"-v, --version    display version information and exit\n"
 	"-d, --debug      don't fork into the background\n"
-	"-t, --type       the server type to start\n"
-	"-p, --port       the port to run the server on, if not the default\n";
+	"-c, --config     the server type to start\n"
+	"-p, --pidfile    the port to run the server on, if not the default\n";
 
 void usage()
 {
@@ -31,10 +31,11 @@ int main(int argc, char *argv[])
 {
 	int optc;
 	int debug = 0;
-	char servertype[20];
-	int port = 0;
+	char service[20] = "";
+	char pidfile[255] = "";
+	char configfile[255] = "";
 
-	while ((optc = getopt_long(argc, argv, "hvdt:p:", longopts, NULL)) != -1) {
+	while ((optc = getopt_long(argc, argv, "hvdc:p:", longopts, NULL)) != -1) {
 		switch (optc){
 		case 'h':
 			usage();
@@ -45,18 +46,13 @@ int main(int argc, char *argv[])
 		case 'd':
 			debug = 1;
 			break;
-		case 't':
-			strncpy(servertype, optarg, sizeof(servertype));
-			servertype[sizeof(servertype)-1] = 0;
+		case 'c':
+			strncpy(configfile, optarg, sizeof(configfile));
+			configfile[sizeof(configfile)-1] = 0;
 			break;
 		case 'p':
-			port = atoi(optarg);
-			if (port <= 0 || port >= 65535)
-			{
-				fprintf(stderr, "Invalid port specification: %s\n\n", optarg);
-				usage();
-				return 1;
-			}
+			strncpy(pidfile, optarg, sizeof(pidfile));
+			pidfile[sizeof(pidfile)-1] = 0;
 			break;
 		case '?':
 			printf("\n");
@@ -66,20 +62,11 @@ int main(int argc, char *argv[])
 	}
 
 	if (optind < argc) {
-		fprintf(stderr, "%s: extra operand: %s\n\n",
-			argv[0], argv[optind]);
-		usage();
-		return 1;
+		strncpy(service, argv[optind], sizeof(service));
+		service[sizeof(service)-1] = 0;
 	}
 
-	if (port == 0)
-	{
-		printf("Would start server of type %s on default port %s debug\n", servertype, (debug ? "with" : "without"));
-	}
-	else
-	{
-		printf("Would start server of type %s on port %d %s debug\n", servertype, port, (debug ? "with" : "without"));
-	}
+	printf("Would start server of type %s with %d additional arguments, configfile=%s, pidfile=%s, debug=%d\n", service, (argc-optind-1), configfile, pidfile, debug);
 
 	return 0;
 }
