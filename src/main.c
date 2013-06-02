@@ -7,6 +7,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
 
 static const struct option longopts[] = {
 	{ "help", no_argument, NULL, 'h' },
@@ -38,6 +39,7 @@ void usage()
 int main(int argc, char *argv[])
 {
 	int optc;
+	pid_t child_pid;
 	int debug = 0;
 	char service[20] = "";
 	char pidfile[255] = "";
@@ -114,6 +116,15 @@ int main(int argc, char *argv[])
 		}
 		if (!strcmp(service, dispatch_table[i].service))
 		{
+			if (!debug)
+			{
+				child_pid = fork();
+				if (child_pid > 0)
+				{
+					// Parent
+					return 0;
+				}
+			}
 			return (*dispatch_table[i].func)(server_opts);
 		}
 		i++;
