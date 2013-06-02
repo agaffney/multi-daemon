@@ -1,5 +1,8 @@
 #include "config.h"
 
+#include "main.h"
+#include "test.h"
+
 #include <getopt.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -12,6 +15,11 @@ static const struct option longopts[] = {
 	{ "config", required_argument, NULL, 'c' },
 	{ "pidfile", required_argument, NULL, 'p' },
 	{ NULL, 0, NULL, 0 }
+};
+
+static const struct dispatch_table dispatch[] = {
+	{ "test", test_entry },
+	{ NULL, NULL }
 };
 
 static const char help_string[] =
@@ -66,7 +74,20 @@ int main(int argc, char *argv[])
 		service[sizeof(service)-1] = 0;
 	}
 
-	printf("Would start server of type %s with %d additional arguments, configfile=%s, pidfile=%s, debug=%d\n", service, (argc-optind-1), configfile, pidfile, debug);
-
-	return 0;
+	// Lookup the function to call in the dispatch table
+	int i = 0;
+	while(1)
+	{
+		if (dispatch[i].service == NULL)
+		{
+			fprintf(stderr, "Invalid service type: %s\n\n", service);
+			usage();
+			return 1;
+		}
+		if (!strcmp(service, dispatch[i].service))
+		{
+			return (*dispatch[i].func)(argc - optind - 1, argv);
+		}
+		i++;
+	}
 }
