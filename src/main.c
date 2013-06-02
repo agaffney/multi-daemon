@@ -38,7 +38,7 @@ void usage()
 
 int main(int argc, char *argv[])
 {
-	int optc;
+	int optc, i;
 	pid_t child_pid;
 	int debug = 0;
 	char service[20] = "";
@@ -105,8 +105,7 @@ int main(int argc, char *argv[])
 	}
 
 	// Lookup the function to call in the dispatch table
-	int i = 0;
-	while(1)
+	for(i=0;;i++)
 	{
 		if (dispatch_table[i].service == NULL)
 		{
@@ -127,6 +126,5 @@ int main(int argc, char *argv[])
 			}
 			return (*dispatch_table[i].func)(server_opts);
 		}
-		i++;
 	}
 }
