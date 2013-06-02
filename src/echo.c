@@ -1,5 +1,6 @@
 #include "main.h"
 #include "echo.h"
+#include "server.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -42,7 +43,10 @@ int echo_entry(type_server_opt server_opts[])
 			return 1;
 		}
 	}
-	printf("echo_entry(): would start server on %s/%d\n", proto, port);
+	type_server_info server_info;
+	strcpy(server_info.proto, proto);
+	server_info.port = port;
+	i = server_start(server_info);
 
 	return 0;
 }
