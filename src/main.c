@@ -46,6 +46,7 @@ int main(int argc, char *argv[])
 	char pidfile[255] = "";
 	char configfile[255] = "";
 	config_opt config_opts[255];
+	int config_opts_idx;
 
 	while ((optc = getopt_long(argc, argv, "hvdc:p:", longopts, NULL)) != -1) {
 		switch (optc){
@@ -73,12 +74,17 @@ int main(int argc, char *argv[])
 		}
 	}
 
+	// Parse the config file, if specified
+	if(!strcmp(configfile, ""))
+	{
+		config_opts_idx = parse_config_file(configfile, service, config_opts, sizeof(config_opts));
+	}
+
 	if (optind < argc) {
 		strncpy(service, argv[optind], sizeof(service));
 		service[sizeof(service)-1] = 0;
 		optind++;
 		// Parse remaining arguments as key/value pairs
-		int config_opts_idx = 0;
 		for(;optind < argc;optind++)
 		{
 			char *firstpart = strtok(argv[optind], "=");
