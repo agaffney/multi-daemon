@@ -1,1 +1,1 @@
-int test_entry(type_server_opt[]);
+int test_entry(config_opt[]);

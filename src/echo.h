@@ -1,2 +1,2 @@
-int echo_entry(type_server_opt[]);
+int echo_entry(config_opt[]);
 int echo_recv(char *, void *);

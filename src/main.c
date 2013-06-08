@@ -1,3 +1,4 @@
+#include "config.h"
 #include "main.h"
 #include "test.h"
 #include "echo.h"
@@ -17,7 +18,7 @@ static const struct option longopts[] = {
 	{ NULL, 0, NULL, 0 }
 };
 
-static const struct dispatch_table_entry dispatch_table[] = {
+static const dispatch_table_entry dispatch_table[] = {
 	{ "test", test_entry },
 	{ "echo", echo_entry },
 	{ NULL, NULL }
@@ -44,7 +45,7 @@ int main(int argc, char *argv[])
 	char service[20] = "";
 	char pidfile[255] = "";
 	char configfile[255] = "";
-	type_server_opt server_opts[255];
+	config_opt config_opts[255];
 
 	while ((optc = getopt_long(argc, argv, "hvdc:p:", longopts, NULL)) != -1) {
 		switch (optc){
@@ -77,7 +78,7 @@ int main(int argc, char *argv[])
 		service[sizeof(service)-1] = 0;
 		optind++;
 		// Parse remaining arguments as key/value pairs
-		int server_opts_idx = 0;
+		int config_opts_idx = 0;
 		for(;optind < argc;optind++)
 		{
 			char *firstpart = strtok(argv[optind], "=");
@@ -87,8 +88,8 @@ int main(int argc, char *argv[])
 				usage();
 				return 1;
 			}
-			strncpy(server_opts[server_opts_idx].name, firstpart, sizeof(server_opts[server_opts_idx].name));
-			server_opts[server_opts_idx].name[sizeof(server_opts[server_opts_idx].name)-1] = 0;
+			strncpy(config_opts[config_opts_idx].name, firstpart, sizeof(config_opts[config_opts_idx].name));
+			config_opts[config_opts_idx].name[sizeof(config_opts[config_opts_idx].name)-1] = 0;
 			char *secondpart = strtok(NULL, "");
 			if (secondpart == NULL)
 			{
@@ -96,12 +97,12 @@ int main(int argc, char *argv[])
 				usage();
 				return 1;
 			}
-			strncpy(server_opts[server_opts_idx].value, secondpart, sizeof(server_opts[server_opts_idx].value));
-			server_opts[server_opts_idx].value[sizeof(server_opts[server_opts_idx].value)-1] = 0;
-			server_opts_idx++;
+			strncpy(config_opts[config_opts_idx].value, secondpart, sizeof(config_opts[config_opts_idx].value));
+			config_opts[config_opts_idx].value[sizeof(config_opts[config_opts_idx].value)-1] = 0;
+			config_opts_idx++;
 		}
-		server_opts[server_opts_idx].name[0] = 0;
-		server_opts[server_opts_idx].value[0] = 0;
+		config_opts[config_opts_idx].name[0] = 0;
+		config_opts[config_opts_idx].value[0] = 0;
 	}
 
 	// Lookup the function to call in the dispatch table
@@ -124,7 +125,7 @@ int main(int argc, char *argv[])
 					return 0;
 				}
 			}
-			return (*dispatch_table[i].func)(server_opts);
+			return (*dispatch_table[i].func)(config_opts);
 		}
 	}
 }
