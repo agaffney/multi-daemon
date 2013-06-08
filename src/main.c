@@ -1,5 +1,3 @@
-#include "config.h"
-
 #include "main.h"
 #include "test.h"
 #include "echo.h"
@@ -26,7 +24,7 @@ static const struct dispatch_table_entry dispatch_table[] = {
 };
 
 static const char help_string[] =
-	"usage: " PROJECT_BINARY_NAME " [OPTIONS] <service>\n\n"
+	"usage: multi-daemon [OPTIONS] <service>\n\n"
 	"-h, --help       display this help and exit\n"
 	"-v, --version    display version information and exit\n"
 	"-d, --debug      don't fork into the background\n"
@@ -54,7 +52,7 @@ int main(int argc, char *argv[])
 			usage();
 			return 0;
 		case 'v':
-			printf("%s %s\n", PROJECT_NAME, PROJECT_VERSION);
+			printf("%s %s\n", "multi-daemon", "0.1");
 			return 0;
 		case 'd':
 			debug = 1;
