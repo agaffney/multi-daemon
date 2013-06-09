@@ -74,6 +74,15 @@ int main(int argc, char *argv[])
 		}
 	}
 
+	// Grab service from arguments
+	if (optind < argc) {
+		strncpy(service, argv[optind], sizeof(service));
+		service[sizeof(service)-1] = 0;
+		optind++;
+	}
+
+	memset(config_opts, 0, sizeof(config_opts));
+
 	// Parse the config file, if specified
 	if(strcmp(configfile, ""))
 	{
@@ -85,9 +94,6 @@ int main(int argc, char *argv[])
 	}
 
 	if (optind < argc) {
-		strncpy(service, argv[optind], sizeof(service));
-		service[sizeof(service)-1] = 0;
-		optind++;
 		// Parse remaining arguments as key/value pairs
 		for(;optind < argc;optind++)
 		{

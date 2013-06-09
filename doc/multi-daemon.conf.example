@@ -1,0 +1,5 @@
+[main]
+
+[echo]
+port=1234
+proto=udp
