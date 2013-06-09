@@ -1,20 +1,28 @@
+include Makefile.inc
+
 TARGET=multi-daemon
 LIBS=
-CC=gcc
-CFLAGS=-g -Wall
+
+BUILDDIRS = $(SUBDIRS:%=build-%)
+CLEANDIRS = $(SUBDIRS:%=clean-%)
+
+SRCS    := $(shell find $(SUBDIRS) -name '*.c')
+OBJREF  := $(subst src,obj,$(SRCS))
+OBJS    := $(patsubst %.c,%.o,$(OBJREF))
+
+$(SUBDIRS): $(BUILDDIRS)
+$(BUILDDIRS):
+	$(MAKE) -C $(@:build-%=%)
+
+clean: $(CLEANDIRS)
+$(CLEANDIRS): 
+	$(MAKE) -C $(@:clean-%=%) clean
 
 default: $(TARGET)
 all: default
 
-OBJECTS = $(patsubst %.c, %.o, $(wildcard *.c))
-HEADERS = $(wildcard *.h)
-
-%.o: %.c $(HEADERS)
-	$(CC) $(CFLAGS) -c $< -o $@
-
-$(TARGET): $(OBJECTS)
-	$(CC) $(CFLAGS) $(OBJECTS) $(LIBS) -o $@
+$(TARGET): $(BUILDDIRS)
+	$(CC) $(CFLAGS) $(OBJS) $(LIBS) -o $@
 
 clean:
-	-rm -f $(OBJECTS)
 	-rm -f $(TARGET)
