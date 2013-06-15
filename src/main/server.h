@@ -2,6 +2,7 @@ typedef struct _server_info {
 	char proto[5];
 	int port;
 	int (*recv_callback)(char *, void *);
+	int (*recv_ready_callback)();
 } type_server_info;
 
 typedef struct _server_callback_info {

@@ -46,6 +46,7 @@ int echo_entry(config_opt config_opts[])
 	}
 
 	type_server_info server_info;
+	memset(&server_info, 0, sizeof(server_info));
 	strcpy(server_info.proto, proto);
 	server_info.port = port;
 	server_info.recv_callback = echo_recv;

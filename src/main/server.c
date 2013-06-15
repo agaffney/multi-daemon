@@ -51,23 +51,30 @@ int server_udp_start(type_server_info server_info)
 	// Bind to the port
 	bind(socket_fd, (struct sockaddr *) &server_addr, sizeof(server_addr));
 
-	for (;;)
+	if (server_info.recv_ready_callback != NULL)
 	{
-		len = sizeof(client_addr);
-		n = recvfrom(socket_fd, buf, 1000, 0, (struct sockaddr *) &client_addr, &len);
-		buf[n] = 0;
-		if (server_info.recv_callback != NULL)
+		(*server_info.recv_ready_callback)();
+	}
+	else
+	{
+		while (1)
 		{
-			type_server_callback_info callback_info;
-			memset(&callback_info, 0, sizeof(callback_info));
-			callback_info.server_info = &server_info;
-			callback_info.client_addr = (struct sockaddr *)&client_addr;
-			callback_info.socket_fd = socket_fd;
-			callback_info.client_port = ntohs(client_addr.sin_port);
-			inet_ntop(AF_INET, &client_addr.sin_addr, callback_info.client_ip, sizeof(callback_info.client_ip));
+			len = sizeof(client_addr);
+			n = recvfrom(socket_fd, buf, 1000, 0, (struct sockaddr *) &client_addr, &len);
+			buf[n] = 0;
+			if (server_info.recv_callback != NULL)
+			{
+				type_server_callback_info callback_info;
+				memset(&callback_info, 0, sizeof(callback_info));
+				callback_info.server_info = &server_info;
+				callback_info.client_addr = (struct sockaddr *)&client_addr;
+				callback_info.socket_fd = socket_fd;
+				callback_info.client_port = ntohs(client_addr.sin_port);
+				inet_ntop(AF_INET, &client_addr.sin_addr, callback_info.client_ip, sizeof(callback_info.client_ip));
 
-			// Call the callback function
-			(*server_info.recv_callback)(buf, (void *)&callback_info);
+				// Call the callback function
+				(*server_info.recv_callback)(buf, (void *)&callback_info);
+			}
 		}
 	}
 
