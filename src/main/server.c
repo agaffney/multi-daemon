@@ -1,12 +1,9 @@
 #include "server.h"
 
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
-
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <errno.h>
 
 int server_start(server_info *server_info)
 {
@@ -35,10 +32,8 @@ int server_udp_start(server_info *server_info)
 {
 	printf("Starting UDP server on port %d\n", server_info->port);
 
-	int socket_fd, n;
-	struct sockaddr_in server_addr, client_addr;
-	socklen_t len;
-	char buf[1000];
+	int socket_fd;
+	struct sockaddr_in server_addr;
 
 	// Create socket
 	socket_fd = socket(AF_INET, SOCK_DGRAM, 0);
@@ -52,39 +47,79 @@ int server_udp_start(server_info *server_info)
 	// Bind to the port
 	bind(socket_fd, (struct sockaddr *) &server_addr, sizeof(server_addr));
 
+	Socket *sockobj = (Socket *)calloc(1, sizeof(Socket));
+	sockobj->init = socket_init;
+	sockobj->init(sockobj, socket_fd);
+
 	if (server_info->recv_ready_callback != NULL)
 	{
-		(*server_info->recv_ready_callback)();
-	}
-	else
-	{
-		while (1)
-		{
-			len = sizeof(client_addr);
-			n = recvfrom(socket_fd, buf, 1000, 0, (struct sockaddr *) &client_addr, &len);
-			buf[n] = 0;
-			if (server_info->recv_callback != NULL)
-			{
-				server_callback_info *callback_info = (server_callback_info *)calloc(1, sizeof(server_callback_info));
-				callback_info->server_info = server_info;
-				callback_info->client_addr = (struct sockaddr *)&client_addr;
-				callback_info->socket_fd = socket_fd;
-				callback_info->client_port = ntohs(client_addr.sin_port);
-				inet_ntop(AF_INET, &client_addr.sin_addr, callback_info->client_ip, sizeof(callback_info->client_ip));
-
-				// Call the callback function
-				(*server_info->recv_callback)(buf, (void *)callback_info);
-
-				// Free the struct pointer
-				free(callback_info);
-			}
-		}
+		(*server_info->recv_ready_callback)(sockobj);
 	}
 
 	return 0;
 }
 
-int server_sendto(char *msg, server_callback_info *callback_info)
+int socket_init(Socket *self, int socket)
 {
-	return sendto(callback_info->socket_fd, msg, strlen(msg), 0, callback_info->client_addr, sizeof(*(callback_info->client_addr)));
+	self->socket = socket;
+	self->recvfrom = socket_recvfrom;
+	self->sendto = socket_sendto;
+	self->recvready = socket_recvready;
+	return 0;
+}
+
+int socket_recvfrom(Socket *self, char *buf, int buf_size, struct sockaddr *sockaddr, unsigned int *sockaddr_size)
+{
+	int n = recvfrom(self->socket, buf, buf_size, 0, sockaddr, sockaddr_size);
+	if (n < 0)
+	{
+		printf("socket_recvfrom(): %s\n", strerror(errno));
+		return -1;
+	}
+	buf[n] = 0;
+	return n;
+}
+
+int socket_sendto(Socket *self, char *buf, struct sockaddr *sockaddr, unsigned int sockaddr_size)
+{
+	int n = sendto(self->socket, buf, strlen(buf), 0, sockaddr, sockaddr_size);
+	if (n < 0)
+	{
+		printf("socket_sendto(): %s\n", strerror(errno));
+	}
+	return n;
+}
+
+int socket_recvready(Socket *self, int timeout_sec)
+{
+	fd_set rfds;
+	int n;
+
+	struct timeval *timeout = NULL;
+
+	if (timeout_sec >= 0)
+	{
+		timeout = (struct timeval *)calloc(1, sizeof(struct timeval));
+		timeout->tv_sec = timeout_sec;
+		timeout->tv_usec = 0;
+	}
+
+	FD_ZERO(&rfds);
+	FD_SET(self->socket, &rfds);
+
+	n = select(self->socket + 1, &rfds, NULL, NULL, timeout);
+	if (n < 0)
+	{
+		printf("socket_recvready(): %s\n", strerror(errno));
+		return -1;
+	}
+	if (n == 0)
+	{
+		// Timeout
+	}
+	if (FD_ISSET(self->socket, &rfds))
+	{
+		return 1;
+	}
+	return 0;
 }

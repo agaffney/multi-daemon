@@ -1,11 +1,11 @@
 #include "config.h"
 #include "main.h"
-#include "server.h"
 #include "echo.h"
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <netinet/in.h>
 
 int echo_entry(config_opt config_opts[])
 {
@@ -48,7 +48,7 @@ int echo_entry(config_opt config_opts[])
 	server_info *srv_info = (server_info *)calloc(1, sizeof(server_info));
 	strcpy(srv_info->proto, proto);
 	srv_info->port = port;
-	srv_info->recv_callback = echo_recv;
+	srv_info->recv_ready_callback = echo_recv_ready;
 
 	i = server_start(srv_info);
 
@@ -57,10 +57,20 @@ int echo_entry(config_opt config_opts[])
 	return 0;
 }
 
-int echo_recv(char *msg, void *callback_info)
+int echo_recv_ready(Socket *sock)
 {
-	server_callback_info *cb_info = (server_callback_info *)callback_info;
-	printf("Received from %s:%d, message: %s\n", cb_info->client_ip, cb_info->client_port, msg);
-	server_sendto(msg, cb_info);
-	return 0;
+	struct sockaddr_in client_addr;
+	socklen_t len = sizeof(client_addr);
+	char buf[1024];
+
+	while (1)
+	{
+		if (sock->recvready(sock, 0))
+		{
+			sock->recvfrom(sock, buf, sizeof(buf), (struct sockaddr *) &client_addr, &len);
+			printf("echo_recv_ready(): received string '%s'\n", buf);
+			sock->sendto(sock, buf, (struct sockaddr *) &client_addr, len);
+		}
+	}
+
 }
