@@ -13,7 +13,7 @@ typedef struct _server_callback_info {
 	int client_port;
 } type_server_callback_info;
 
-int server_start(type_server_info);
-int server_tcp_start(type_server_info);
-int server_udp_start(type_server_info);
+int server_start(type_server_info *);
+int server_tcp_start(type_server_info *);
+int server_udp_start(type_server_info *);
 int server_sendto(char *, type_server_callback_info *);

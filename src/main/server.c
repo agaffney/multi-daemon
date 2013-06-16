@@ -6,33 +6,34 @@
 
 #include <string.h>
 #include <stdio.h>
+#include <stdlib.h>
 
-int server_start(type_server_info server_info)
+int server_start(type_server_info *server_info)
 {
-	if(!strcmp(server_info.proto, "tcp"))
+	if(!strcmp(server_info->proto, "tcp"))
 	{
 		return server_tcp_start(server_info);
 	}
-	else if(!strcmp(server_info.proto, "udp"))
+	else if(!strcmp(server_info->proto, "udp"))
 	{
 		return server_udp_start(server_info);
 	}
 	else
 	{
-		fprintf(stderr, "Unsupported proto: %s\n", server_info.proto);
+		fprintf(stderr, "Unsupported proto: %s\n", server_info->proto);
 		return 1;
 	}
 }
 
-int server_tcp_start(type_server_info server_info)
+int server_tcp_start(type_server_info *server_info)
 {
-	printf("Would start TCP server on port %d\n", server_info.port);
+	printf("Would start TCP server on port %d\n", server_info->port);
 	return 0;
 }
 
-int server_udp_start(type_server_info server_info)
+int server_udp_start(type_server_info *server_info)
 {
-	printf("Starting UDP server on port %d\n", server_info.port);
+	printf("Starting UDP server on port %d\n", server_info->port);
 
 	int socket_fd, n;
 	struct sockaddr_in server_addr, client_addr;
@@ -46,14 +47,14 @@ int server_udp_start(type_server_info server_info)
 	memset(&server_addr, 0, sizeof(server_addr));
 	server_addr.sin_family = AF_INET;
 	server_addr.sin_addr.s_addr = htonl(INADDR_ANY);
-	server_addr.sin_port = htons(server_info.port);
+	server_addr.sin_port = htons(server_info->port);
 
 	// Bind to the port
 	bind(socket_fd, (struct sockaddr *) &server_addr, sizeof(server_addr));
 
-	if (server_info.recv_ready_callback != NULL)
+	if (server_info->recv_ready_callback != NULL)
 	{
-		(*server_info.recv_ready_callback)();
+		(*server_info->recv_ready_callback)();
 	}
 	else
 	{
@@ -62,18 +63,20 @@ int server_udp_start(type_server_info server_info)
 			len = sizeof(client_addr);
 			n = recvfrom(socket_fd, buf, 1000, 0, (struct sockaddr *) &client_addr, &len);
 			buf[n] = 0;
-			if (server_info.recv_callback != NULL)
+			if (server_info->recv_callback != NULL)
 			{
-				type_server_callback_info callback_info;
-				memset(&callback_info, 0, sizeof(callback_info));
-				callback_info.server_info = &server_info;
-				callback_info.client_addr = (struct sockaddr *)&client_addr;
-				callback_info.socket_fd = socket_fd;
-				callback_info.client_port = ntohs(client_addr.sin_port);
-				inet_ntop(AF_INET, &client_addr.sin_addr, callback_info.client_ip, sizeof(callback_info.client_ip));
+				type_server_callback_info *callback_info = (type_server_callback_info *)calloc(1, sizeof(type_server_callback_info));
+				callback_info->server_info = server_info;
+				callback_info->client_addr = (struct sockaddr *)&client_addr;
+				callback_info->socket_fd = socket_fd;
+				callback_info->client_port = ntohs(client_addr.sin_port);
+				inet_ntop(AF_INET, &client_addr.sin_addr, callback_info->client_ip, sizeof(callback_info->client_ip));
 
 				// Call the callback function
-				(*server_info.recv_callback)(buf, (void *)&callback_info);
+				(*server_info->recv_callback)(buf, (void *)callback_info);
+
+				// Free the struct pointer
+				free(callback_info);
 			}
 		}
 	}
