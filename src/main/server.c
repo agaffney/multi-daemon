@@ -8,7 +8,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-int server_start(type_server_info *server_info)
+int server_start(server_info *server_info)
 {
 	if(!strcmp(server_info->proto, "tcp"))
 	{
@@ -25,13 +25,13 @@ int server_start(type_server_info *server_info)
 	}
 }
 
-int server_tcp_start(type_server_info *server_info)
+int server_tcp_start(server_info *server_info)
 {
 	printf("Would start TCP server on port %d\n", server_info->port);
 	return 0;
 }
 
-int server_udp_start(type_server_info *server_info)
+int server_udp_start(server_info *server_info)
 {
 	printf("Starting UDP server on port %d\n", server_info->port);
 
@@ -65,7 +65,7 @@ int server_udp_start(type_server_info *server_info)
 			buf[n] = 0;
 			if (server_info->recv_callback != NULL)
 			{
-				type_server_callback_info *callback_info = (type_server_callback_info *)calloc(1, sizeof(type_server_callback_info));
+				server_callback_info *callback_info = (server_callback_info *)calloc(1, sizeof(server_callback_info));
 				callback_info->server_info = server_info;
 				callback_info->client_addr = (struct sockaddr *)&client_addr;
 				callback_info->socket_fd = socket_fd;
@@ -84,7 +84,7 @@ int server_udp_start(type_server_info *server_info)
 	return 0;
 }
 
-int server_sendto(char *msg, type_server_callback_info *callback_info)
+int server_sendto(char *msg, server_callback_info *callback_info)
 {
 	return sendto(callback_info->socket_fd, msg, strlen(msg), 0, callback_info->client_addr, sizeof(*(callback_info->client_addr)));
 }

@@ -45,21 +45,21 @@ int echo_entry(config_opt config_opts[])
 		}
 	}
 
-	type_server_info *server_info = (type_server_info *)calloc(1, sizeof(type_server_info));
-	strcpy(server_info->proto, proto);
-	server_info->port = port;
-	server_info->recv_callback = echo_recv;
+	server_info *srv_info = (server_info *)calloc(1, sizeof(server_info));
+	strcpy(srv_info->proto, proto);
+	srv_info->port = port;
+	srv_info->recv_callback = echo_recv;
 
-	i = server_start(server_info);
+	i = server_start(srv_info);
 
-	free(server_info);
+	free(srv_info);
 
 	return 0;
 }
 
 int echo_recv(char *msg, void *callback_info)
 {
-	type_server_callback_info *cb_info = (type_server_callback_info *)callback_info;
+	server_callback_info *cb_info = (server_callback_info *)callback_info;
 	printf("Received from %s:%d, message: %s\n", cb_info->client_ip, cb_info->client_port, msg);
 	server_sendto(msg, cb_info);
 	return 0;
