@@ -22,6 +22,8 @@ Socket * socket_init(int domain, int type)
 	self->sendto = socket_sendto;
 	self->recvready = socket_recvready;
 	self->bind = socket_bind;
+	self->listen = socket_listen;
+	self->accept = socket_accept;
 	// Assign vars
 	self->domain = domain;
 	self->type = type;
@@ -45,6 +47,20 @@ int socket_bind(Socket *self, char *address, int port)
 
         // Bind to the port
 	return bind(self->socket, (struct sockaddr *) sockaddr, sizeof(struct sockaddr_in));
+}
+
+int socket_listen(Socket *self, int max_pending)
+{
+	return listen(self->socket, max_pending);
+}
+
+int socket_accept(Socket *self)
+{
+	struct sockaddr_in *sockaddr = (struct sockaddr_in *)calloc(1, sizeof(struct sockaddr_in));;
+	socklen_t len = sizeof(struct sockaddr_in);
+	int newsock = accept(self->socket, (struct sockaddr *)sockaddr, &len);
+	// Create new Socket object here with this socket
+	return newsock;
 }
 
 int socket_recvfrom(Socket *self, char *buf, int buf_size, struct sockaddr *sockaddr, unsigned int *sockaddr_size)
