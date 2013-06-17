@@ -33,28 +33,20 @@ int server_udp_start(server_info *server_info)
 {
 	printf("Starting UDP server on port %d\n", server_info->port);
 
-	int socket_fd;
-	struct sockaddr_in server_addr;
-
 	// Create socket
-	socket_fd = socket(AF_INET, SOCK_DGRAM, 0);
-
-	// Populate struct with proto/port info
-	memset(&server_addr, 0, sizeof(server_addr));
-	server_addr.sin_family = AF_INET;
-	server_addr.sin_addr.s_addr = htonl(INADDR_ANY);
-	server_addr.sin_port = htons(server_info->port);
+	Socket *sock = socket_init(AF_INET, SOCK_DGRAM);
+	if (sock == NULL)
+	{
+		fprintf(stderr, "Failed to create socket\n");
+		return 1;
+	}
 
 	// Bind to the port
-	bind(socket_fd, (struct sockaddr *) &server_addr, sizeof(server_addr));
-
-	Socket *sockobj = (Socket *)calloc(1, sizeof(Socket));
-	sockobj->init = socket_init;
-	sockobj->init(sockobj, socket_fd);
+	sock->bind(sock, "0.0.0.0", server_info->port);
 
 	if (server_info->recv_ready_callback != NULL)
 	{
-		(*server_info->recv_ready_callback)(sockobj);
+		(*server_info->recv_ready_callback)(sock);
 	}
 
 	return 0;

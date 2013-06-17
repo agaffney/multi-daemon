@@ -5,13 +5,46 @@
 #include <stdlib.h>
 #include <errno.h>
 
-int socket_init(Socket *self, int socket)
+Socket * socket_init(int domain, int type)
 {
-	self->socket = socket;
+	if (domain <= 0)
+	{
+		domain = AF_INET;
+	}
+	if (type <= 0)
+	{
+		type = SOCK_DGRAM;
+	}
+	// Allocate struct
+	Socket *self = (Socket *)calloc(1, sizeof(Socket));
+	// Assign function pointers
 	self->recvfrom = socket_recvfrom;
 	self->sendto = socket_sendto;
 	self->recvready = socket_recvready;
-	return 0;
+	self->bind = socket_bind;
+	// Assign vars
+	self->domain = domain;
+	self->type = type;
+
+	// Create socket
+	self->socket = socket(domain, type, 0);
+	if (self->socket == -1)
+	{
+		return NULL;
+	}
+
+	return self;
+}
+
+int socket_bind(Socket *self, char *address, int port)
+{
+	struct sockaddr_in *sockaddr = (struct sockaddr_in *)calloc(1, sizeof(struct sockaddr_in));
+	sockaddr->sin_family = AF_INET;
+	sockaddr->sin_addr.s_addr = htonl(INADDR_ANY);
+	sockaddr->sin_port = htons(port);
+
+        // Bind to the port
+	return bind(self->socket, (struct sockaddr *) sockaddr, sizeof(struct sockaddr_in));
 }
 
 int socket_recvfrom(Socket *self, char *buf, int buf_size, struct sockaddr *sockaddr, unsigned int *sockaddr_size)
