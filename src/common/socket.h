@@ -1,6 +1,7 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
+#include <fcntl.h>
 
 typedef struct {
 	int socket;
@@ -13,6 +14,8 @@ typedef struct {
 	int (*bind)();
 	int (*listen)();
 	int (*accept)();
+	void (*set_flag)();
+	void (*unset_flag)();
 } Socket;
 
 Socket * socket_init(int, int);
@@ -22,3 +25,5 @@ int socket_recvready(Socket *, int);
 int socket_bind(Socket *, char *, int);
 int socket_listen(Socket *, int);
 int socket_accept(Socket *);
+void socket_set_flag(Socket *, int);
+void socket_unset_flag(Socket *, int);

@@ -26,6 +26,24 @@ int server_start(server_info *server_info)
 int server_tcp_start(server_info *server_info)
 {
 	printf("Would start TCP server on port %d\n", server_info->port);
+
+	Socket *sock = socket_init(AF_INET, SOCK_STREAM);
+	if (sock == NULL)
+	{
+		fprintf(stderr, "Failed to create socket\n");
+		return 1;
+	}
+
+	sock->set_flag(sock, O_NONBLOCK);
+	sock->bind(sock, "0.0.0.0", server_info->port);
+	sock->listen(sock, 5);
+	while (1)
+	{
+		printf("Calling accept()\n");
+		int newsock = sock->accept(sock);
+		printf("server_tcp_start(): accept() returned %d\n", newsock);
+	}
+
 	return 0;
 }
 

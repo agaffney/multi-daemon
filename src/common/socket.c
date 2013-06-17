@@ -24,6 +24,8 @@ Socket * socket_init(int domain, int type)
 	self->bind = socket_bind;
 	self->listen = socket_listen;
 	self->accept = socket_accept;
+	self->set_flag = socket_set_flag;
+	self->unset_flag = socket_unset_flag;
 	// Assign vars
 	self->domain = domain;
 	self->type = type;
@@ -117,4 +119,16 @@ int socket_recvready(Socket *self, int timeout_sec)
 		return 1;
 	}
 	return 0;
+}
+
+void socket_set_flag(Socket *self, int flag)
+{
+	int flags = fcntl(self->socket, F_GETFL, 0);
+	fcntl(self->socket, F_SETFL, flags | flag);
+}
+
+void socket_unset_flag(Socket *self, int flag)
+{
+	int flags = fcntl(self->socket, F_GETFL, 0);
+	fcntl(self->socket, F_SETFL, flags & ~flag);
 }
