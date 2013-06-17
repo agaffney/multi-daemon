@@ -1,3 +1,4 @@
+#include "socket.h"
 #include "server.h"
 
 int echo_entry(config_opt[]);
