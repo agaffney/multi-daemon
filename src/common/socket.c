@@ -5,7 +5,41 @@
 #include <stdlib.h>
 #include <errno.h>
 
-Socket * socket_init(int domain, int type)
+Socket * socket_init(int socketfd)
+{
+	// Allocate struct
+	Socket *self = (Socket *)calloc(1, sizeof(Socket));
+	// Assign function pointers
+	self->create = socket_create;
+	self->set_peer_addr = socket_set_peer_addr;
+	self->get_peer_addr = socket_get_peer_addr;
+	self->recvfrom = socket_recvfrom;
+	self->sendto = socket_sendto;
+	self->recvready = socket_recvready;
+	self->bind = socket_bind;
+	self->listen = socket_listen;
+	self->accept = socket_accept;
+	self->set_flag = socket_set_flag;
+	self->unset_flag = socket_unset_flag;
+
+	if (socketfd > 0)
+		self->socket = socketfd;
+
+	return self;
+}
+
+void socket_set_peer_addr(Socket *self, struct sockaddr *sockaddr)
+{
+	self->peer_addr = sockaddr;
+	self->domain = sockaddr->sa_family;
+}
+
+struct sockaddr * socket_get_peer_addr(Socket *self)
+{
+	return self->peer_addr;
+}
+
+int socket_create(Socket *self, int domain, int type)
 {
 	if (domain <= 0)
 	{
@@ -15,29 +49,13 @@ Socket * socket_init(int domain, int type)
 	{
 		type = SOCK_DGRAM;
 	}
-	// Allocate struct
-	Socket *self = (Socket *)calloc(1, sizeof(Socket));
-	// Assign function pointers
-	self->recvfrom = socket_recvfrom;
-	self->sendto = socket_sendto;
-	self->recvready = socket_recvready;
-	self->bind = socket_bind;
-	self->listen = socket_listen;
-	self->accept = socket_accept;
-	self->set_flag = socket_set_flag;
-	self->unset_flag = socket_unset_flag;
-	// Assign vars
-	self->domain = domain;
-	self->type = type;
-
 	// Create socket
 	self->socket = socket(domain, type, 0);
 	if (self->socket == -1)
 	{
-		return NULL;
+		return -1;
 	}
-
-	return self;
+	return 0;
 }
 
 int socket_bind(Socket *self, char *address, int port)
@@ -56,13 +74,19 @@ int socket_listen(Socket *self, int max_pending)
 	return listen(self->socket, max_pending);
 }
 
-int socket_accept(Socket *self)
+void * socket_accept(Socket *self)
 {
 	struct sockaddr_in *sockaddr = (struct sockaddr_in *)calloc(1, sizeof(struct sockaddr_in));;
 	socklen_t len = sizeof(struct sockaddr_in);
 	int newsock = accept(self->socket, (struct sockaddr *)sockaddr, &len);
+	if (newsock <= 0)
+	{
+		return NULL;
+	}
 	// Create new Socket object here with this socket
-	return newsock;
+	Socket *sockobj = socket_init(newsock);
+	sockobj->set_peer_addr(sockobj, sockaddr);
+	return (void *)sockobj;
 }
 
 int socket_recvfrom(Socket *self, char *buf, int buf_size, struct sockaddr *sockaddr, unsigned int *sockaddr_size)

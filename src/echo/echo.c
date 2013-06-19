@@ -10,6 +10,7 @@ int echo_entry(config_opt config_opts[])
 {
 	int i, port;
 	char proto[5];
+	int (*recv_ready_callback)();
 
 	for(i=0;;i++)
 	{
@@ -31,7 +32,15 @@ int echo_entry(config_opt config_opts[])
 		{
 			strncpy(proto, config_opts[i].value, sizeof(proto));
 			proto[sizeof(proto)-1] = 0;
-			if (strcmp(proto, "tcp") && strcmp(proto, "udp"))
+			if (!strcmp(proto, "tcp"))
+			{
+				recv_ready_callback = echo_recv_ready_tcp;
+			}
+			else if (!strcmp(proto, "udp"))
+			{
+				recv_ready_callback = echo_recv_ready_udp;
+			}
+			else
 			{
 				fprintf(stderr, "Invalid proto specification '%s'. Must be one of: tcp, udp\n", config_opts[i].value);
 				return 1;
@@ -47,7 +56,7 @@ int echo_entry(config_opt config_opts[])
 	server_info *srv_info = (server_info *)calloc(1, sizeof(server_info));
 	strcpy(srv_info->proto, proto);
 	srv_info->port = port;
-	srv_info->recv_ready_callback = echo_recv_ready;
+	srv_info->recv_ready_callback = recv_ready_callback;
 
 	i = server_start(srv_info);
 
@@ -56,7 +65,7 @@ int echo_entry(config_opt config_opts[])
 	return 0;
 }
 
-int echo_recv_ready(Socket *sock)
+int echo_recv_ready_udp(Socket *sock)
 {
 	struct sockaddr_in client_addr;
 	socklen_t len = sizeof(client_addr);
@@ -72,4 +81,11 @@ int echo_recv_ready(Socket *sock)
 		}
 	}
 
+}
+
+int echo_recv_ready_tcp(Socket *sock)
+{
+	printf("echo_recv_ready_tcp(): would do something useful here\n");
+
+	return 0;
 }
