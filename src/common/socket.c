@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <errno.h>
+#include <unistd.h>
 
 Socket * socket_init(int socketfd)
 {
@@ -21,6 +22,8 @@ Socket * socket_init(int socketfd)
 	self->accept = socket_accept;
 	self->set_flag = socket_set_flag;
 	self->unset_flag = socket_unset_flag;
+	self->read = socket_read;
+	self->write = socket_write;
 
 	if (socketfd > 0)
 		self->socket = socketfd;
@@ -155,4 +158,14 @@ void socket_unset_flag(Socket *self, int flag)
 {
 	int flags = fcntl(self->socket, F_GETFL, 0);
 	fcntl(self->socket, F_SETFL, flags & ~flag);
+}
+
+int socket_read(Socket *self, char *buf, int buflen)
+{
+	return read(self->socket, buf, buflen);
+}
+
+int socket_write(Socket *self, char *buf)
+{
+	return write(self->socket, buf, strlen(buf));
 }

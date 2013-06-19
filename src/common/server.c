@@ -25,7 +25,7 @@ int server_start(server_info *server_info)
 
 int server_tcp_start(server_info *server_info)
 {
-	printf("Would start TCP server on port %d\n", server_info->port);
+	printf("Starting TCP server on port %d\n", server_info->port);
 
 	Socket *sock = socket_init(0);
 	sock->create(sock, AF_INET, SOCK_STREAM);
@@ -40,16 +40,14 @@ int server_tcp_start(server_info *server_info)
 	sock->listen(sock, 5);
 	while (1)
 	{
-		printf("Calling accept()\n");
 		Socket *newsock = (Socket *) sock->accept(sock);
 		if (newsock == NULL)
 		{
 			continue;
 		}
-		printf("server_tcp_start(): accept() returned %d\n", newsock->socket);
 		if (server_info->recv_ready_callback != NULL)
 		{
-			(*server_info->recv_ready_callback)(sock);
+			(*server_info->recv_ready_callback)(newsock);
 		}
 	}
 

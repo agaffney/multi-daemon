@@ -5,6 +5,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <errno.h>
 
 int echo_entry(config_opt config_opts[])
 {
@@ -85,7 +86,29 @@ int echo_recv_ready_udp(Socket *sock)
 
 int echo_recv_ready_tcp(Socket *sock)
 {
-	printf("echo_recv_ready_tcp(): would do something useful here\n");
+	char buf[1024];
+	int n;
+
+	while (1)
+	{
+		if (sock->recvready(sock, 60))
+		{
+			n = sock->read(sock, buf, sizeof(buf));
+			if (n == -1)
+			{
+				printf("echo_recv_ready_tcp(): read() error: %s\n", strerror(errno));
+				break;
+			}
+			if (n == 0)
+			{
+				printf("echo_recv_ready_tcp(): connection closed\n");
+				break;
+			}
+			printf("buf = '%s'\n", buf);
+			sock->write(sock, buf);
+			buf[0] = 0;
+		}
+	}
 
 	return 0;
 }

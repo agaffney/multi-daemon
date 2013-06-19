@@ -20,6 +20,8 @@ typedef struct {
 	void * (*accept)();
 	void (*set_flag)();
 	void (*unset_flag)();
+	int (*read)();
+	int (*write)();
 } Socket;
 
 Socket * socket_init(int);
@@ -34,3 +36,5 @@ int socket_listen(Socket *, int);
 void * socket_accept(Socket *);
 void socket_set_flag(Socket *, int);
 void socket_unset_flag(Socket *, int);
+int socket_read(Socket *, char *, int);
+int socket_write(Socket *, char *);
