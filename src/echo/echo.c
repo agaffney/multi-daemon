@@ -105,7 +105,7 @@ int echo_recv_ready_tcp(Socket *sock)
 				break;
 			}
 			printf("buf = '%s'\n", buf);
-			sock->write(sock, buf);
+			sock->write(sock, buf, strlen(buf));
 			buf[0] = 0;
 		}
 	}

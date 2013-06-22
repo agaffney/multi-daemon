@@ -1,6 +1,7 @@
 #include "config.h"
 #include "main.h"
 #include "echo.h"
+#include "http.h"
 
 #include <getopt.h>
 #include <stdio.h>
@@ -19,6 +20,7 @@ static const struct option longopts[] = {
 
 static const dispatch_table_entry dispatch_table[] = {
 	{ "echo", echo_entry },
+	{ "http", http_entry },
 	{ NULL, NULL }
 };
 

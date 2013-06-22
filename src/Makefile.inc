@@ -1,7 +1,7 @@
 CC=gcc
 CFLAGS=-g -Wall
 
-SUBDIRS=common echo
+SUBDIRS=common echo http
 INCLUDES=$(patsubst %,-I../%,$(SUBDIRS))
 
 OBJECTS = $(patsubst %.c, %.o, $(wildcard *.c))

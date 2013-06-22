@@ -1,3 +1,6 @@
+#ifndef SOCKET_H_INCLUDED
+#define SOCKET_H_INCLUDED
+
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
@@ -37,4 +40,6 @@ void * socket_accept(Socket *);
 void socket_set_flag(Socket *, int);
 void socket_unset_flag(Socket *, int);
 int socket_read(Socket *, char *, int);
-int socket_write(Socket *, char *);
+int socket_write(Socket *, char *, int);
+
+#endif

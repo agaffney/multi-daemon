@@ -3,3 +3,6 @@
 [echo]
 port=1234
 proto=udp
+
+[http]
+port=8000

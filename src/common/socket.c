@@ -162,10 +162,17 @@ void socket_unset_flag(Socket *self, int flag)
 
 int socket_read(Socket *self, char *buf, int buflen)
 {
-	return read(self->socket, buf, buflen);
+	int n = 0;
+	n = read(self->socket, buf, buflen);
+	if (n >= 0)
+	{
+		// Null terminate the string since read() doesn't
+		buf[n] = 0;
+	}
+	return n;
 }
 
-int socket_write(Socket *self, char *buf)
+int socket_write(Socket *self, char *buf, int buflen)
 {
-	return write(self->socket, buf, strlen(buf));
+	return write(self->socket, buf, buflen);
 }

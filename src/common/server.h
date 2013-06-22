@@ -1,3 +1,6 @@
+#ifndef SERVER_H_INCLUDED
+#define SERVER_H_INCLUDED
+
 typedef struct {
 	char proto[5];
 	int port;
@@ -8,3 +11,4 @@ int server_start(server_info *);
 int server_tcp_start(server_info *);
 int server_udp_start(server_info *);
 
+#endif
