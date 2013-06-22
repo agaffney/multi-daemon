@@ -6,6 +6,7 @@
 #include <stdlib.h>
 #include <errno.h>
 #include <unistd.h>
+#include <sys/wait.h>
 
 int server_start(server_info *server_info)
 {
@@ -26,6 +27,8 @@ int server_start(server_info *server_info)
 
 int server_tcp_start(server_info *server_info)
 {
+	int child_status;
+
 	printf("Starting TCP server on port %d\n", server_info->port);
 
 	Socket *sock = socket_init(0);
@@ -36,11 +39,14 @@ int server_tcp_start(server_info *server_info)
 		return 1;
 	}
 
-//	sock->set_flag(sock, O_NONBLOCK);
+	sock->set_flag(sock, O_NONBLOCK);
 	sock->bind(sock, "0.0.0.0", server_info->port);
 	sock->listen(sock, 5);
 	while (1)
 	{
+		// Naively clean up after children
+		waitpid(-1, &child_status, WNOHANG);
+		// Accept pending connections
 		Socket *newsock = (Socket *) sock->accept(sock);
 		if (newsock == NULL)
 		{
