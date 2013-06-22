@@ -5,6 +5,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <errno.h>
+#include <unistd.h>
 
 int server_start(server_info *server_info)
 {
@@ -47,7 +48,12 @@ int server_tcp_start(server_info *server_info)
 		}
 		if (server_info->recv_ready_callback != NULL)
 		{
-			(*server_info->recv_ready_callback)(newsock);
+			pid_t child_pid = fork();
+			if (child_pid == 0)
+			{
+				(*server_info->recv_ready_callback)(newsock);
+				return 0;
+			}
 		}
 	}
 
