@@ -7,8 +7,7 @@ BUILDDIRS = $(SUBDIRS:%=build-%)
 CLEANDIRS = $(SUBDIRS:%=clean-%)
 
 SRCS    := $(shell find $(SUBDIRS) -name '*.c')
-OBJREF  := $(subst src,obj,$(SRCS))
-OBJS    := $(patsubst %.c,%.o,$(OBJREF))
+OBJS    := $(patsubst %.c,%.o,$(SRCS))
 
 default: $(TARGET)
 all: default
