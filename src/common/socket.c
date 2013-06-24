@@ -34,7 +34,6 @@ Socket * socket_init(int socketfd)
 void socket_set_peer_addr(Socket *self, struct sockaddr *sockaddr)
 {
 	self->peer_addr = sockaddr;
-	self->domain = sockaddr->sa_family;
 }
 
 struct sockaddr * socket_get_peer_addr(Socket *self)
@@ -89,6 +88,9 @@ void * socket_accept(Socket *self)
 	// Create new Socket object here with this socket
 	Socket *sockobj = socket_init(newsock);
 	sockobj->set_peer_addr(sockobj, sockaddr);
+	// Copy type/domain from listening socket
+	sockobj->type = self->type;
+	sockobj->domain = self->domain;
 	return (void *)sockobj;
 }
 
