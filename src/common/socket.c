@@ -51,8 +51,10 @@ int socket_create(Socket *self, int domain, int type)
 	{
 		type = SOCK_DGRAM;
 	}
+	self->domain = domain;
+	self->type = type;
 	// Create socket
-	self->socket = socket(domain, type, 0);
+	self->socket = socket(self->domain, self->type, 0);
 	if (self->socket == -1)
 	{
 		return -1;
@@ -62,13 +64,20 @@ int socket_create(Socket *self, int domain, int type)
 
 int socket_bind(Socket *self, char *address, int port)
 {
-	struct sockaddr_in *sockaddr = (struct sockaddr_in *)calloc(1, sizeof(struct sockaddr_in));
-	sockaddr->sin_family = AF_INET;
-	sockaddr->sin_addr.s_addr = htonl(INADDR_ANY);
-	sockaddr->sin_port = htons(port);
-
-        // Bind to the port
-	return bind(self->socket, (struct sockaddr *) sockaddr, sizeof(struct sockaddr_in));
+	if (self->domain == AF_INET)
+	{
+		struct sockaddr_in *sockaddr = (struct sockaddr_in *)calloc(1, sizeof(struct sockaddr_in));
+		sockaddr->sin_family = self->domain;
+		sockaddr->sin_addr.s_addr = htonl(INADDR_ANY);
+		sockaddr->sin_port = htons(port);
+		// Bind to the port
+		return bind(self->socket, (struct sockaddr *) sockaddr, sizeof(struct sockaddr_in));
+	}
+	else if (self->domain == AF_INET6)
+	{
+		// Not implemented
+	}
+	return -1;
 }
 
 int socket_listen(Socket *self, int max_pending)
@@ -78,16 +87,27 @@ int socket_listen(Socket *self, int max_pending)
 
 void * socket_accept(Socket *self)
 {
-	struct sockaddr_in *sockaddr = (struct sockaddr_in *)calloc(1, sizeof(struct sockaddr_in));;
-	socklen_t len = sizeof(struct sockaddr_in);
-	int newsock = accept(self->socket, (struct sockaddr *)sockaddr, &len);
-	if (newsock <= 0)
+	Socket *sockobj;
+
+	if (self->domain == AF_INET)
 	{
+		struct sockaddr_in *sockaddr = (struct sockaddr_in *)calloc(1, sizeof(struct sockaddr_in));
+		socklen_t len = sizeof(struct sockaddr_in);
+		int newsock = accept(self->socket, (struct sockaddr *)sockaddr, &len);
+		if (newsock <= 0)
+		{
+			return NULL;
+		}
+		// Create new Socket object here with this socket
+		sockobj = socket_init(newsock);
+		sockobj->set_peer_addr(sockobj, sockaddr);
+	}
+	else if (self->domain == AF_INET6)
+	{
+		// Not implemented yet
 		return NULL;
 	}
-	// Create new Socket object here with this socket
-	Socket *sockobj = socket_init(newsock);
-	sockobj->set_peer_addr(sockobj, sockaddr);
+
 	// Copy type/domain from listening socket
 	sockobj->type = self->type;
 	sockobj->domain = self->domain;

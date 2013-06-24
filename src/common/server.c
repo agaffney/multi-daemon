@@ -40,8 +40,16 @@ int server_tcp_start(server_info *server_info)
 	}
 
 	sock->set_flag(sock, O_NONBLOCK);
-	sock->bind(sock, "0.0.0.0", server_info->port);
-	sock->listen(sock, 5);
+	if (sock->bind(sock, "0.0.0.0", server_info->port) < 0)
+	{
+		fprintf(stderr, "Bind to socket failed\n");
+		return 1;
+	}
+	if (sock->listen(sock, 5) < 0)
+	{
+		fprintf(stderr, "Listen on socket failed\n");
+		return 1;
+	}
 	while (1)
 	{
 		// Naively clean up after children
