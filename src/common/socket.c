@@ -85,7 +85,7 @@ int socket_listen(Socket *self, int max_pending)
 	return listen(self->socket, max_pending);
 }
 
-void * socket_accept(Socket *self)
+Socket * socket_accept(Socket *self)
 {
 	Socket *sockobj;
 
@@ -100,7 +100,7 @@ void * socket_accept(Socket *self)
 		}
 		// Create new Socket object here with this socket
 		sockobj = socket_init(newsock);
-		sockobj->set_peer_addr(sockobj, sockaddr);
+		sockobj->set_peer_addr(sockobj, (struct sockaddr *)sockaddr);
 	}
 	else if (self->domain == AF_INET6)
 	{
