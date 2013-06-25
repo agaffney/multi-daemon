@@ -1,5 +1,6 @@
 #include "common/config.h"
 #include "common/main.h"
+#include "common/list.h"
 #include "echo.h"
 
 #include <stdio.h>
@@ -87,7 +88,9 @@ int echo_recv_ready_udp(Socket *sock)
 int echo_recv_ready_tcp(Socket *sock)
 {
 	char buf[1024];
+	char outbuf[1024];
 	int n;
+	List * my_list = _list_init();
 
 	while (1)
 	{
@@ -104,8 +107,21 @@ int echo_recv_ready_tcp(Socket *sock)
 				printf("echo_recv_ready_tcp(): connection closed\n");
 				break;
 			}
-			printf("buf = '%s'\n", buf);
-			sock->write(sock, buf, strlen(buf));
+			if (!strcmp(buf, "GIMME\n"))
+			{
+				int i;
+				for (i = 0; i < my_list->length(my_list); i++)
+				{
+					sprintf(outbuf, "%d: %s", i,  my_list->get(my_list, i));
+					sock->write(sock, outbuf, strlen(outbuf));
+				}
+			}
+			else
+			{
+				my_list->push(my_list, buf);
+				sprintf(outbuf, "%d: %s", my_list->length(my_list) - 1, my_list->get(my_list, my_list->length(my_list) - 1));
+				sock->write(sock, outbuf, strlen(outbuf));
+			}
 			buf[0] = 0;
 		}
 	}
