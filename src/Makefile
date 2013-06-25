@@ -2,6 +2,7 @@ include Makefile.inc
 
 TARGET=multi-daemon
 LIBS=
+SUBDIRS=common echo http
 
 BUILDDIRS = $(SUBDIRS:%=build-%)
 CLEANDIRS = $(SUBDIRS:%=clean-%)

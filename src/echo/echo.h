@@ -1,5 +1,5 @@
-#include "socket.h"
-#include "server.h"
+#include "common/socket.h"
+#include "common/server.h"
 
 int echo_entry(config_opt[]);
 int echo_recv_ready_udp(Socket *);

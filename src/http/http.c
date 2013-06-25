@@ -1,5 +1,5 @@
-#include "config.h"
-#include "main.h"
+#include "common/config.h"
+#include "common/main.h"
 #include "http.h"
 
 #include <stdio.h>

@@ -1,7 +1,7 @@
 #include "config.h"
 #include "main.h"
-#include "echo.h"
-#include "http.h"
+#include "echo/echo.h"
+#include "http/http.h"
 
 #include <getopt.h>
 #include <stdio.h>
