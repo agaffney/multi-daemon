@@ -1,12 +1,13 @@
 #include "common/config.h"
 #include "common/main.h"
-#include "common/list.h"
+#include "common/hash.h"
 #include "echo.h"
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <errno.h>
+#include <ctype.h>
 
 int echo_entry(config_opt config_opts[])
 {
@@ -90,7 +91,7 @@ int echo_recv_ready_tcp(Socket *sock)
 	char buf[1024];
 	char outbuf[1024];
 	int n;
-	List * my_list = _list_init();
+	Hash * my_hash = _hash_init();
 
 	while (1)
 	{
@@ -107,19 +108,36 @@ int echo_recv_ready_tcp(Socket *sock)
 				printf("echo_recv_ready_tcp(): connection closed\n");
 				break;
 			}
-			if (!strcmp(buf, "GIMME\n"))
+			while (1)
+			{
+				if (isspace(buf[strlen(buf)-1]))
+				{
+					buf[strlen(buf)-1] = 0;
+					continue;
+				}
+				break;
+			}
+			if (!strcmp(buf, "GIMME"))
 			{
 				int i;
+				List * my_list = my_hash->keys(my_hash);
 				for (i = 0; i < my_list->length(my_list); i++)
 				{
-					sprintf(outbuf, "%d: %s", i,  my_list->get(my_list, i));
+					sprintf(outbuf, "%s: %s\n", my_list->get(my_list, i), my_hash->get(my_hash, my_list->get(my_list, i)));
 					sock->write(sock, outbuf, strlen(outbuf));
 				}
 			}
 			else
 			{
-				my_list->push(my_list, buf);
-				sprintf(outbuf, "%d: %s", my_list->length(my_list) - 1, my_list->get(my_list, my_list->length(my_list) - 1));
+				int val = 1;
+				if (my_hash->has_key(my_hash, buf))
+				{
+					val = atoi(my_hash->get(my_hash, buf)) + 1;
+				}
+				char valbuf[10];
+				sprintf(valbuf, "%d", val);
+				my_hash->set(my_hash, buf, valbuf);
+				sprintf(outbuf, "%s\n", buf);
 				sock->write(sock, outbuf, strlen(outbuf));
 			}
 			buf[0] = 0;

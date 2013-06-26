@@ -12,6 +12,7 @@ List * _list_init()
 	}
 	listobj->push = _list_push;
 	listobj->get = _list_get;
+	listobj->set = _list_set;
 	listobj->length = _list_length;
 	return listobj;
 }
@@ -31,10 +32,26 @@ char * _list_get(List * self, int index)
 	return tmp_item->value;
 }
 
+void _list_set(List * self, int index, char * value)
+{
+	int i;
+	ListItem * tmp_item = self->items;
+	for (i = 0; i < index; i++)
+	{
+		tmp_item = tmp_item->next_item;
+	}
+	if (tmp_item->value != NULL)
+	{
+		free(tmp_item->value);
+	}
+	tmp_item->value = (char *)calloc(1, strlen(value) + 1);
+	strcpy(tmp_item->value, value);
+}
+
 void _list_push(List * self, char * value)
 {
 	ListItem * new_item = (ListItem *)calloc(1, sizeof(ListItem));
-	new_item->value = (char *)calloc(1, strlen(value));
+	new_item->value = (char *)calloc(1, strlen(value) + 1);
 	strcpy(new_item->value, value);
 	if (self->item_count == 0)
 	{
