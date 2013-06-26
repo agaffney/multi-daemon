@@ -1,13 +1,13 @@
 #include "common/config.h"
 #include "common/main.h"
 #include "common/hash.h"
+#include "common/util.h"
 #include "echo.h"
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <errno.h>
-#include <ctype.h>
 
 int echo_entry(config_opt config_opts[])
 {
@@ -108,15 +108,7 @@ int echo_recv_ready_tcp(Socket *sock)
 				printf("echo_recv_ready_tcp(): connection closed\n");
 				break;
 			}
-			while (1)
-			{
-				if (isspace(buf[strlen(buf)-1]))
-				{
-					buf[strlen(buf)-1] = 0;
-					continue;
-				}
-				break;
-			}
+			trim(buf);
 			if (!strcmp(buf, "GIMME"))
 			{
 				int i;
