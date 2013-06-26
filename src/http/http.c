@@ -70,7 +70,7 @@ int http_accept(Socket *sock)
 			}
 			HttpRequest * req = _http_request_init();
 			req->parse(req, buf);
-			sprintf(outbuf, "200 OK\r\nContent-length: 0\r\n\r\n");
+			sprintf(outbuf, "HTTP/%s 200 OK\r\nContent-length: 0\r\n\r\n", req->http_version);
 			sock->write(sock, outbuf, strlen(outbuf));
 			buf[0] = 0;
 		}
