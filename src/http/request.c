@@ -1,4 +1,5 @@
 #include "request.h"
+#include "common/util.h"
 
 #include <stdlib.h>
 #include <string.h>
@@ -65,8 +66,9 @@ int _http_request_parse(HttpRequest * self, char * buf)
 				free(line);
 				return 0;
 			}
-			self->headers->set(self->headers, key, value + 1);
-			printf("Header: '%s' = '%s'\n", key, value + 1);
+			ltrim(value);
+			self->headers->set(self->headers, key, value);
+			printf("Header: '%s' = '%s'\n", key, value);
 		}
 		free(line);
 	}

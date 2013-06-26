@@ -108,7 +108,7 @@ int echo_recv_ready_tcp(Socket *sock)
 				printf("echo_recv_ready_tcp(): connection closed\n");
 				break;
 			}
-			trim(buf);
+			rtrim(buf);
 			if (!strcmp(buf, "GIMME"))
 			{
 				int i;
