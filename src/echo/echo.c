@@ -120,10 +120,11 @@ int echo_recv_ready_tcp(Socket *sock)
 			if (!strcmp(buf, "GIMME"))
 			{
 				int i;
-				List * my_list = my_hash->keys(my_hash);
-				for (i = 0; i < my_list->length(my_list); i++)
+				List * keys = my_hash->keys(my_hash);
+				for (i = 0; i < keys->length(keys); i++)
 				{
-					sprintf(outbuf, "%s: %s\n", my_list->get(my_list, i), my_hash->get(my_hash, my_list->get(my_list, i)));
+					char * key = keys->get(keys, i);
+					sprintf(outbuf, "%s: %s\n", keys->get(keys, i), my_hash->get(my_hash, key));
 					sock->write(sock, outbuf, strlen(outbuf));
 				}
 			}
