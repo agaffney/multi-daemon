@@ -73,6 +73,8 @@ int http_accept(Socket *sock)
 			sprintf(outbuf, "HTTP/%s 200 OK\r\nContent-length: 0\r\n\r\n", req->http_version);
 			sock->write(sock, outbuf, strlen(outbuf));
 			buf[0] = 0;
+			sock->close(sock);
+			return 0;
 		}
 	}
 

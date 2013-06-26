@@ -25,6 +25,7 @@ struct _Socket {
 	void (*unset_flag)(struct _Socket *, int);
 	int (*read)(struct _Socket *, char *, int);
 	int (*write)(struct _Socket *, char *, int);
+	int (*close)(struct _Socket *);
 };
 typedef struct _Socket Socket;
 
@@ -42,5 +43,6 @@ void socket_set_flag(Socket *, int);
 void socket_unset_flag(Socket *, int);
 int socket_read(Socket *, char *, int);
 int socket_write(Socket *, char *, int);
+int _socket_close(Socket *);
 
 #endif

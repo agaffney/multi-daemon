@@ -24,6 +24,7 @@ Socket * socket_init(int socketfd)
 	self->unset_flag = socket_unset_flag;
 	self->read = socket_read;
 	self->write = socket_write;
+	self->close = _socket_close;
 
 	if (socketfd > 0)
 		self->socket = socketfd;
@@ -197,4 +198,9 @@ int socket_read(Socket *self, char *buf, int buflen)
 int socket_write(Socket *self, char *buf, int buflen)
 {
 	return write(self->socket, buf, buflen);
+}
+
+int _socket_close(Socket * self)
+{
+	return close(self->socket);
 }
