@@ -1,6 +1,7 @@
 #include "common/config.h"
 #include "common/main.h"
 #include "http.h"
+#include "request.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -49,6 +50,7 @@ int http_entry(config_opt config_opts[])
 int http_accept(Socket *sock)
 {
 	char buf[1024];
+	char outbuf[1024];
 	int n;
 
 	while (1)
@@ -66,8 +68,10 @@ int http_accept(Socket *sock)
 				printf("http_accept(): connection closed\n");
 				break;
 			}
-			printf("buf = '%s'\n", buf);
-			sock->write(sock, buf, strlen(buf));
+			HttpRequest * req = _http_request_init();
+			req->parse(req, buf);
+			sprintf(outbuf, "200 OK\r\nContent-length: 0\r\n\r\n");
+			sock->write(sock, outbuf, strlen(outbuf));
 			buf[0] = 0;
 		}
 	}
