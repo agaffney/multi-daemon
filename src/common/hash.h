@@ -1,3 +1,6 @@
+#ifndef HASH_H_INCLUDED
+#define HASH_H_INCLUDED
+
 #include "list.h"
 
 #define _HASH_TABLE_SIZE 256
@@ -19,3 +22,5 @@ void _hash_set(Hash *, char *, char *);
 char * _hash_get(Hash *, char *);
 int _hash_has_key(Hash *, char *);
 List * _hash_keys(Hash *);
+
+#endif

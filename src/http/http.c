@@ -2,6 +2,7 @@
 #include "common/main.h"
 #include "http.h"
 #include "request.h"
+#include "response.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -70,7 +71,11 @@ int http_accept(Socket *sock)
 			}
 			HttpRequest * req = _http_request_init();
 			req->parse(req, buf);
-			sprintf(outbuf, "HTTP/%s 200 OK\r\nContent-length: 0\r\n\r\n", req->http_version);
+			HttpResponse * resp = _http_response_init();
+			strcpy(resp->http_version, req->http_version);
+			resp->set_status(resp, 200);
+			resp->headers->set(resp->headers, "Content-length", "0");
+			resp->output(resp, outbuf, sizeof(outbuf));
 			sock->write(sock, outbuf, strlen(outbuf));
 			buf[0] = 0;
 			sock->close(sock);

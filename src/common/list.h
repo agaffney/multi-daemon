@@ -1,3 +1,6 @@
+#ifndef LIST_H_INCLUDED
+#define LIST_H_INCLUDED
+
 struct _list_item {
 	char * value;
 	struct _list_item * next_item;
@@ -21,3 +24,5 @@ char * _list_get(List *, int);
 void _list_set(List *, int, char *);
 void _list_push(List *, char *);
 int _list_length(List *);
+
+#endif
