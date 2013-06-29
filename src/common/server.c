@@ -55,6 +55,10 @@ int server_tcp_start(server_info *server_info)
 		// Naively clean up after children
 		waitpid(-1, &child_status, WNOHANG);
 		// Accept pending connections
+		if (sock->recvready(sock, 0) <= 0)
+		{
+			continue;
+		}
 		Socket *newsock = (Socket *) sock->accept(sock);
 		if (newsock == NULL)
 		{

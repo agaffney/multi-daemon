@@ -155,6 +155,11 @@ int _socket_recvready(Socket *self, int timeout_sec)
 	FD_SET(self->socket, &rfds);
 
 	n = select(self->socket + 1, &rfds, NULL, NULL, timeout);
+
+	if (timeout != NULL)
+	{
+		free(timeout);
+	}
 	if (n < 0)
 	{
 		printf("socket_recvready(): %s\n", strerror(errno));
