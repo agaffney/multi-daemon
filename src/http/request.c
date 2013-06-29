@@ -8,7 +8,7 @@
 HttpRequest * _http_request_init()
 {
 	HttpRequest * obj = (HttpRequest *)calloc(1, sizeof(HttpRequest));
-	obj->headers = _hash_init();
+	obj->headers = Hash_init();
 	obj->parse = _http_request_parse;
 	return obj;
 }

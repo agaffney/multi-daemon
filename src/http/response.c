@@ -53,7 +53,7 @@ static const http_response_code _http_response_codes[] = {
 HttpResponse * _http_response_init()
 {
 	HttpResponse * obj = (HttpResponse *)calloc(1, sizeof(HttpResponse));
-	obj->headers = _hash_init();
+	obj->headers = Hash_init();
 	obj->set_status = _http_response_set_status;
 	obj->output = _http_response_output;
 	return obj;

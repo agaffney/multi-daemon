@@ -91,7 +91,7 @@ int echo_recv_ready_tcp(Socket *sock)
 	char buf[1024];
 	char outbuf[1024];
 	int n;
-	Hash * my_hash = _hash_init();
+	Hash * my_hash = Hash_init();
 
 	while (1)
 	{

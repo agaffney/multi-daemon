@@ -3,10 +3,10 @@
 #include <stdlib.h>
 #include <string.h>
 
-Hash * _hash_init()
+Hash * Hash_init()
 {
 	Hash * hashobj = (Hash *)calloc(1, sizeof(Hash));
-	hashobj->_keys = _list_init();
+	hashobj->_keys = List_init();
 	hashobj->get = _hash_get;
 	hashobj->set = _hash_set;
 	hashobj->has_key = _hash_has_key;
@@ -14,7 +14,7 @@ Hash * _hash_init()
 	int i;
 	for (i = 0; i < _HASH_TABLE_SIZE; i++)
 	{
-		hashobj->_table[i] = _list_init();	
+		hashobj->_table[i] = List_init();	
 	}
 	return hashobj;
 }

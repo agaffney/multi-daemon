@@ -3,7 +3,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-List * _list_init()
+List * List_init()
 {
 	List * listobj = (List *)calloc(1, sizeof(List));
 	if (listobj == NULL)
