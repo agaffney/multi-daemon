@@ -69,9 +69,9 @@ int http_accept(Socket *sock)
 				printf("http_accept(): connection closed\n");
 				break;
 			}
-			HttpRequest * req = _http_request_init();
+			HttpRequest * req = HttpRequest_init();
 			req->parse(req, buf);
-			HttpResponse * resp = _http_response_init();
+			HttpResponse * resp = HttpResponse_init();
 			strcpy(resp->http_version, req->http_version);
 			resp->set_status(resp, 200);
 			resp->headers->set(resp->headers, "Content-length", "0");

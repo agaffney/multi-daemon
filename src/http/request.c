@@ -5,7 +5,7 @@
 #include <string.h>
 #include <stdio.h>
 
-HttpRequest * _http_request_init()
+HttpRequest * HttpRequest_init()
 {
 	HttpRequest * obj = (HttpRequest *)calloc(1, sizeof(HttpRequest));
 	obj->headers = Hash_init();
