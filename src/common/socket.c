@@ -6,24 +6,24 @@
 #include <errno.h>
 #include <unistd.h>
 
-Socket * socket_init(int socketfd)
+Socket * Socket_init(int socketfd)
 {
 	// Allocate struct
 	Socket *self = (Socket *)calloc(1, sizeof(Socket));
 	// Assign function pointers
-	self->create = socket_create;
-	self->set_peer_addr = socket_set_peer_addr;
-	self->get_peer_addr = socket_get_peer_addr;
-	self->recvfrom = socket_recvfrom;
-	self->sendto = socket_sendto;
-	self->recvready = socket_recvready;
-	self->bind = socket_bind;
-	self->listen = socket_listen;
-	self->accept = socket_accept;
-	self->set_flag = socket_set_flag;
-	self->unset_flag = socket_unset_flag;
-	self->read = socket_read;
-	self->write = socket_write;
+	self->create = _socket_create;
+	self->set_peer_addr = _socket_set_peer_addr;
+	self->get_peer_addr = _socket_get_peer_addr;
+	self->recvfrom = _socket_recvfrom;
+	self->sendto = _socket_sendto;
+	self->recvready = _socket_recvready;
+	self->bind = _socket_bind;
+	self->listen = _socket_listen;
+	self->accept = _socket_accept;
+	self->set_flag = _socket_set_flag;
+	self->unset_flag = _socket_unset_flag;
+	self->read = _socket_read;
+	self->write = _socket_write;
 	self->close = _socket_close;
 
 	if (socketfd > 0)
@@ -32,17 +32,17 @@ Socket * socket_init(int socketfd)
 	return self;
 }
 
-void socket_set_peer_addr(Socket *self, struct sockaddr *sockaddr)
+void _socket_set_peer_addr(Socket *self, struct sockaddr *sockaddr)
 {
 	self->peer_addr = sockaddr;
 }
 
-struct sockaddr * socket_get_peer_addr(Socket *self)
+struct sockaddr * _socket_get_peer_addr(Socket *self)
 {
 	return self->peer_addr;
 }
 
-int socket_create(Socket *self, int domain, int type)
+int _socket_create(Socket *self, int domain, int type)
 {
 	if (domain <= 0)
 	{
@@ -63,7 +63,7 @@ int socket_create(Socket *self, int domain, int type)
 	return 0;
 }
 
-int socket_bind(Socket *self, char *address, int port)
+int _socket_bind(Socket *self, char *address, int port)
 {
 	if (self->domain == AF_INET)
 	{
@@ -81,12 +81,12 @@ int socket_bind(Socket *self, char *address, int port)
 	return -1;
 }
 
-int socket_listen(Socket *self, int max_pending)
+int _socket_listen(Socket *self, int max_pending)
 {
 	return listen(self->socket, max_pending);
 }
 
-Socket * socket_accept(Socket *self)
+Socket * _socket_accept(Socket *self)
 {
 	Socket *sockobj;
 
@@ -100,7 +100,7 @@ Socket * socket_accept(Socket *self)
 			return NULL;
 		}
 		// Create new Socket object here with this socket
-		sockobj = socket_init(newsock);
+		sockobj = Socket_init(newsock);
 		sockobj->set_peer_addr(sockobj, (struct sockaddr *)sockaddr);
 	}
 	else if (self->domain == AF_INET6)
@@ -115,7 +115,7 @@ Socket * socket_accept(Socket *self)
 	return (void *)sockobj;
 }
 
-int socket_recvfrom(Socket *self, char *buf, int buf_size, struct sockaddr *sockaddr, unsigned int *sockaddr_size)
+int _socket_recvfrom(Socket *self, char *buf, int buf_size, struct sockaddr *sockaddr, unsigned int *sockaddr_size)
 {
 	int n = recvfrom(self->socket, buf, buf_size, 0, sockaddr, sockaddr_size);
 	if (n < 0)
@@ -127,7 +127,7 @@ int socket_recvfrom(Socket *self, char *buf, int buf_size, struct sockaddr *sock
 	return n;
 }
 
-int socket_sendto(Socket *self, char *buf, struct sockaddr *sockaddr, unsigned int sockaddr_size)
+int _socket_sendto(Socket *self, char *buf, struct sockaddr *sockaddr, unsigned int sockaddr_size)
 {
 	int n = sendto(self->socket, buf, strlen(buf), 0, sockaddr, sockaddr_size);
 	if (n < 0)
@@ -137,7 +137,7 @@ int socket_sendto(Socket *self, char *buf, struct sockaddr *sockaddr, unsigned i
 	return n;
 }
 
-int socket_recvready(Socket *self, int timeout_sec)
+int _socket_recvready(Socket *self, int timeout_sec)
 {
 	fd_set rfds;
 	int n;
@@ -171,19 +171,19 @@ int socket_recvready(Socket *self, int timeout_sec)
 	return 0;
 }
 
-void socket_set_flag(Socket *self, int flag)
+void _socket_set_flag(Socket *self, int flag)
 {
 	int flags = fcntl(self->socket, F_GETFL, 0);
 	fcntl(self->socket, F_SETFL, flags | flag);
 }
 
-void socket_unset_flag(Socket *self, int flag)
+void _socket_unset_flag(Socket *self, int flag)
 {
 	int flags = fcntl(self->socket, F_GETFL, 0);
 	fcntl(self->socket, F_SETFL, flags & ~flag);
 }
 
-int socket_read(Socket *self, char *buf, int buflen)
+int _socket_read(Socket *self, char *buf, int buflen)
 {
 	int n = 0;
 	n = read(self->socket, buf, buflen);
@@ -195,7 +195,7 @@ int socket_read(Socket *self, char *buf, int buflen)
 	return n;
 }
 
-int socket_write(Socket *self, char *buf, int buflen)
+int _socket_write(Socket *self, char *buf, int buflen)
 {
 	return write(self->socket, buf, buflen);
 }

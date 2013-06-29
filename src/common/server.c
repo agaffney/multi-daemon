@@ -31,7 +31,7 @@ int server_tcp_start(server_info *server_info)
 
 	printf("Starting TCP server on port %d\n", server_info->port);
 
-	Socket *sock = socket_init(0);
+	Socket *sock = Socket_init(0);
 	sock->create(sock, AF_INET, SOCK_STREAM);
 	if (sock == NULL)
 	{
@@ -79,7 +79,7 @@ int server_udp_start(server_info *server_info)
 	printf("Starting UDP server on port %d\n", server_info->port);
 
 	// Create socket
-	Socket *sock = socket_init(0);
+	Socket *sock = Socket_init(0);
 	sock->create(sock, AF_INET, SOCK_DGRAM);
 	if (sock == NULL)
 	{
