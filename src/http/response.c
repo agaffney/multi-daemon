@@ -54,9 +54,16 @@ HttpResponse * HttpResponse_init()
 {
 	HttpResponse * obj = (HttpResponse *)calloc(1, sizeof(HttpResponse));
 	obj->headers = Hash_init();
+	obj->destroy = _http_response_destroy;
 	obj->set_status = _http_response_set_status;
 	obj->output = _http_response_output;
 	return obj;
+}
+
+void _http_response_destroy(HttpResponse * self)
+{
+	self->headers->destroy(self->headers);
+	free(self);
 }
 
 int _http_response_set_status(HttpResponse * self, unsigned int code)

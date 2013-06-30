@@ -9,8 +9,15 @@ HttpRequest * HttpRequest_init()
 {
 	HttpRequest * obj = (HttpRequest *)calloc(1, sizeof(HttpRequest));
 	obj->headers = Hash_init();
+	obj->destroy = _http_request_destroy;
 	obj->parse = _http_request_parse;
 	return obj;
+}
+
+void _http_request_destroy(HttpRequest * self)
+{
+	self->headers->destroy(self->headers);
+	free(self);
 }
 
 int _http_request_parse(HttpRequest * self, char * buf)

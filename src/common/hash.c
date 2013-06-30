@@ -7,6 +7,7 @@ Hash * Hash_init()
 {
 	Hash * hashobj = (Hash *)calloc(1, sizeof(Hash));
 	hashobj->_keys = List_init();
+	hashobj->destroy = _hash_destroy;
 	hashobj->get = _hash_get;
 	hashobj->set = _hash_set;
 	hashobj->has_key = _hash_has_key;
@@ -17,6 +18,17 @@ Hash * Hash_init()
 		hashobj->_table[i] = List_init();	
 	}
 	return hashobj;
+}
+
+void _hash_destroy(Hash * self)
+{
+	self->_keys->destroy(self->_keys);
+	int i;
+	for (i = 0; i < _HASH_TABLE_SIZE; i++)
+	{
+		self->_table[i]->destroy(self->_table[i]);
+	}
+	free(self);
 }
 
 /*

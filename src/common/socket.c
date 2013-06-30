@@ -11,6 +11,7 @@ Socket * Socket_init(int socketfd)
 	// Allocate struct
 	Socket *self = (Socket *)calloc(1, sizeof(Socket));
 	// Assign function pointers
+	self->destroy = _socket_destroy;
 	self->create = _socket_create;
 	self->set_peer_addr = _socket_set_peer_addr;
 	self->get_peer_addr = _socket_get_peer_addr;
@@ -30,6 +31,11 @@ Socket * Socket_init(int socketfd)
 		self->socket = socketfd;
 
 	return self;
+}
+
+void _socket_destroy(Socket * self)
+{
+	free(self);
 }
 
 void _socket_set_peer_addr(Socket *self, struct sockaddr *sockaddr)

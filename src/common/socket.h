@@ -11,6 +11,7 @@ struct _Socket {
 	int domain;
 	int type;
 	struct sockaddr *peer_addr;
+	void (*destroy)(struct _Socket *);
 	void (*set_peer_addr)(struct _Socket *, struct sockaddr *);
 	struct sockaddr * (*get_peer_addr)(struct _Socket *);
 	int (*create)(struct _Socket *, int, int);
@@ -29,6 +30,7 @@ struct _Socket {
 typedef struct _Socket Socket;
 
 Socket * Socket_init(int);
+void _socket_destroy(Socket *);
 void _socket_set_peer_addr(Socket *, struct sockaddr *);
 struct sockaddr * _socket_get_peer_addr(Socket *);
 int _socket_create(Socket *, int, int);

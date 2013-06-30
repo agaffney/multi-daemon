@@ -77,10 +77,14 @@ int http_accept(Socket *sock)
 			resp->headers->set(resp->headers, "Content-length", "0");
 			resp->output(resp, outbuf, sizeof(outbuf));
 			sock->write(sock, outbuf, strlen(outbuf));
-			buf[0] = 0;
-			sock->close(sock);
-			return 0;
+			req->destroy(req);
+			resp->destroy(resp);
+			break;
 		}
+	}
+	if (sock->close(sock) < 0)
+	{
+		fprintf(stderr, "http_accept(): close() on socket failed\n");
 	}
 
 	return 0;
