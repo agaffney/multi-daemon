@@ -69,11 +69,14 @@ int server_tcp_start(server_info *server_info)
 			pid_t child_pid = fork();
 			if (child_pid == 0)
 			{
+				sock->close(sock);
 				(*server_info->recv_ready_callback)(newsock);
 				newsock->close(newsock);
 				newsock->destroy(newsock);
 				return 0;
 			}
+			newsock->close(newsock);
+			newsock->destroy(newsock);
 		}
 	}
 
