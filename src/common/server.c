@@ -70,6 +70,7 @@ int server_tcp_start(server_info *server_info)
 			if (child_pid == 0)
 			{
 				sock->close(sock);
+				sock->destroy(sock);
 				(*server_info->recv_ready_callback)(newsock);
 				newsock->close(newsock);
 				newsock->destroy(newsock);
