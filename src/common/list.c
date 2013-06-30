@@ -23,7 +23,7 @@ void _list_destroy(List * self)
 	int i;
 	ListItem * tmp_item = self->items;
 	ListItem * tmp_item2;
-	for (i = 0; i < self->item_count - 1; i++)
+	for (i = 0; i < self->item_count; i++)
 	{
 		tmp_item2 = tmp_item;
 		// Move to next link in the chain

@@ -35,6 +35,10 @@ Socket * Socket_init(int socketfd)
 
 void _socket_destroy(Socket * self)
 {
+	if (self->peer_addr != NULL)
+	{
+		free(self->peer_addr);
+	}
 	free(self);
 }
 
@@ -71,6 +75,7 @@ int _socket_create(Socket *self, int domain, int type)
 
 int _socket_bind(Socket *self, char *address, int port)
 {
+	int ret;
 	// Enable address reuse
 	int on = 1;
 	setsockopt(self->socket, SOL_SOCKET, SO_REUSEADDR, &on, sizeof(on));
@@ -81,7 +86,9 @@ int _socket_bind(Socket *self, char *address, int port)
 		sockaddr->sin_addr.s_addr = htonl(INADDR_ANY);
 		sockaddr->sin_port = htons(port);
 		// Bind to the port
-		return bind(self->socket, (struct sockaddr *) sockaddr, sizeof(struct sockaddr_in));
+		ret = bind(self->socket, (struct sockaddr *) sockaddr, sizeof(struct sockaddr_in));
+		free(sockaddr);
+		return ret;
 	}
 	else if (self->domain == AF_INET6)
 	{
