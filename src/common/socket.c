@@ -77,8 +77,7 @@ int _socket_bind(Socket *self, char *address, int port)
 {
 	int ret;
 	// Enable address reuse
-	int on = 1;
-	setsockopt(self->socket, SOL_SOCKET, SO_REUSEADDR, &on, sizeof(on));
+	setsockopt(self->socket, SOL_SOCKET, SO_REUSEADDR, (int[]){1}, sizeof(int));
 	if (self->domain == AF_INET)
 	{
 		struct sockaddr_in *sockaddr = (struct sockaddr_in *)calloc(1, sizeof(struct sockaddr_in));
