@@ -155,16 +155,26 @@ int _dispatcher_worker_run(Dispatcher * self, int worker_num)
 						{
 							last_ready_fd = j;
 							dispatcher_listener * tmp_listener = self->find_listener(self, j);
+							Socket * newsock = tmp_listener->sock->accept(tmp_listener->sock);
 							if (self->_worker_model == DISPATCHER_WORKER_MODEL_POSTFORK)
 							{
 								// fork it
 								pid_t child_pid = fork();
 								if (child_pid > 0)
 								{
+									// Parent
+									newsock->close(newsock);
+									newsock->destroy(newsock);
 									break;
 								}
+								else
+								{
+									// Child
+									tmp_listener->sock->close(tmp_listener->sock);
+									tmp_listener->sock->destroy(tmp_listener->sock);
+								}
 							}
-							tmp_listener->callback(self, tmp_listener->sock);							
+							tmp_listener->callback(self, newsock);
 							break;
 						}
 					}
@@ -173,6 +183,8 @@ int _dispatcher_worker_run(Dispatcher * self, int worker_num)
 			}
 			break;
 	}
+
+	free(rfds);
 
 	return 0;
 }

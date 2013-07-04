@@ -36,19 +36,37 @@ int http_entry(config_opt config_opts[])
 		}
 	}
 
-	server_info *srv_info = (server_info *)calloc(1, sizeof(server_info));
-	strcpy(srv_info->proto, "tcp");
-	srv_info->port = port;
-	srv_info->recv_ready_callback = http_accept;
+	Socket *sock = Socket_init(0);
+	sock->create(sock, AF_INET, SOCK_STREAM);
+	if (sock == NULL)
+	{
+		fprintf(stderr, "Failed to create socket\n");
+		return 1;
+	}
 
-	i = server_start(srv_info);
+	sock->set_flag(sock, O_NONBLOCK);
+	if (sock->bind(sock, "0.0.0.0", port) < 0)
+	{
+		fprintf(stderr, "Bind to socket failed\n");
+		return 1;
+	}
+	if (sock->listen(sock, 5) < 0)
+	{
+		fprintf(stderr, "Listen on socket failed\n");
+		return 1;
+	}
 
-	free(srv_info);
+	Dispatcher * disp = Dispatcher_init(DISPATCHER_WORKER_MODEL_POSTFORK, 20);
+	disp->add_listener(disp, sock, http_dispatcher_callback);
+	disp->run(disp);
+
+	disp->destroy(disp);
+	sock->destroy(sock);
 
 	return 0;
 }
 
-int http_accept(Socket *sock)
+int http_dispatcher_callback(Dispatcher * dispatcher, Socket * sock)
 {
 	char buf[1024];
 	char outbuf[1024];
