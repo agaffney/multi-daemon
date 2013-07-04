@@ -8,7 +8,7 @@
 #define DISPATCHER_WORKER_MODEL_THREAD   3
 
 struct _Dispatcher {
-	Socket * _listeners[_DISPATCHER_MAX_LISTENERS];
+	struct _dispatcher_listener * _listeners[_DISPATCHER_MAX_LISTENERS];
 	int _listener_count;
 	int _worker_model;
 	void (*destroy)(struct _Dispatcher *);
@@ -16,6 +16,13 @@ struct _Dispatcher {
 };
 
 typedef struct _Dispatcher Dispatcher;
+
+struct _dispatcher_listener {
+	Socket * sock;
+	int (*callback)(Dispatcher *, Socket *);
+};
+
+typedef struct _dispatcher_listener dispatcher_listener;
 
 Dispatcher * Dispatcher_init(unsigned short int);
 void _dispatcher_destroy(Dispatcher *);

@@ -14,6 +14,10 @@ Dispatcher * Dispatcher_init(unsigned short int worker_model)
 
 void _dispatcher_destroy(Dispatcher * self)
 {
+	for (int i = 0; i < self->_listener_count; i++)
+	{
+		free(self->_listeners[i]);
+	}
 	free(self);
 }
 
@@ -23,7 +27,10 @@ int _dispatcher_add_listener(Dispatcher * self, Socket * sock, int (*callback)(D
 	{
 		return 1;
 	}
-	self->_listeners[self->_listener_count] = sock;
+	dispatcher_listener * listener = (dispatcher_listener *)calloc(1, sizeof(dispatcher_listener));
+	listener->sock = sock;
+	listener->callback = callback;
+	self->_listeners[self->_listener_count] = listener;
 	self->_listener_count++;
 	return 0;
 }
