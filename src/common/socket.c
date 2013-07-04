@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include <errno.h>
 #include <unistd.h>
+#include <sys/select.h>
 
 Socket * Socket_init(int socketfd)
 {
