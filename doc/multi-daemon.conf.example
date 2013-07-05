@@ -6,3 +6,5 @@ proto=udp
 
 [http]
 port=8000
+worker_model=thread
+num_workers=10

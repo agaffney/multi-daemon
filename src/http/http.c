@@ -12,6 +12,8 @@
 int http_entry(config_opt config_opts[])
 {
 	int port;
+	int worker_model = DISPATCHER_WORKER_MODEL_SINGLE;
+	int num_workers = 5;
 
 	for(int i = 0;; i++)
 	{
@@ -26,6 +28,39 @@ int http_entry(config_opt config_opts[])
 			if (port <= 0 || port >= 65535)
 			{
 				fprintf(stderr, "Invalid port specification: %s\n", config_opts[i].value);
+				return 1;
+			}
+		}
+		else if (!strcmp(config_opts[i].name, "worker_model"))
+		{
+			if (!strcmp(config_opts[i].value, "single"))
+			{
+				worker_model = DISPATCHER_WORKER_MODEL_SINGLE;
+			}
+			else if (!strcmp(config_opts[i].value, "postfork"))
+			{
+				worker_model = DISPATCHER_WORKER_MODEL_POSTFORK;
+			}
+			else if (!strcmp(config_opts[i].value, "prefork"))
+			{
+				worker_model = DISPATCHER_WORKER_MODEL_PREFORK;
+			}
+			else if (!strcmp(config_opts[i].value, "thread"))
+			{
+				worker_model = DISPATCHER_WORKER_MODEL_THREAD;
+			}
+			else
+			{
+				fprintf(stderr, "Invalid worker_model specification: %s\n", config_opts[i].value);
+				return 1;
+			}
+		}
+		else if (!strcmp(config_opts[i].name, "num_workers"))
+		{
+			num_workers = atoi(config_opts[i].value);
+			if (num_workers <= 0 || num_workers > 200)
+			{
+				fprintf(stderr, "Invalid num_workers specification: %s\n", config_opts[i].value);
 				return 1;
 			}
 		}
@@ -56,7 +91,7 @@ int http_entry(config_opt config_opts[])
 		return 1;
 	}
 
-	Dispatcher * disp = Dispatcher_init(DISPATCHER_WORKER_MODEL_THREAD, 5);
+	Dispatcher * disp = Dispatcher_init(worker_model, num_workers);
 	disp->add_listener(disp, sock, http_dispatcher_callback);
 	disp->run(disp);
 
