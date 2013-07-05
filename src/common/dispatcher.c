@@ -4,6 +4,7 @@
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <unistd.h>
+#include <stdio.h>
 
 Dispatcher * Dispatcher_init(int worker_model, int num_workers)
 {
@@ -68,7 +69,7 @@ int _dispatcher_run(Dispatcher * self)
 
 int _dispatcher_build_listener_fdset(Dispatcher * self, fd_set * rfds)
 {
-	int max_fd;
+	int max_fd = -1;
 
 	FD_ZERO(rfds);
 	for (int i = 0; i < self->_listener_count; i++)
@@ -126,9 +127,6 @@ dispatcher_listener * _dispatcher_find_listener(Dispatcher * self, int socket_fd
 
 int _dispatcher_worker_run(Dispatcher * self, int worker_num)
 {
-	fd_set * rfds = (fd_set *)calloc(1, sizeof(fd_set));
-	int max_fd = self->build_listener_fdset(self, rfds);
-
 	switch (self->_worker_model)
 	{
 		case DISPATCHER_WORKER_MODEL_NONE:
@@ -140,11 +138,15 @@ int _dispatcher_worker_run(Dispatcher * self, int worker_num)
 				// Naively clean up after children
 				waitpid(-1, &child_status, WNOHANG);
 				// Look for sockets that are ready for action
+				fd_set * rfds = (fd_set *)calloc(1, sizeof(fd_set));
+				int max_fd = self->build_listener_fdset(self, rfds);
 				ready_fds = self->poll_listeners(self, rfds, max_fd);
+				free(rfds);
 				if (ready_fds <= 0)
 				{
 					continue;
 				}
+				printf("_dispatcher_worker_run(): we found a listener that was ready!\n");
 				// Figure out which listeners are ready
 				for (int i = 0; i < ready_fds; i++)
 				{
@@ -183,8 +185,6 @@ int _dispatcher_worker_run(Dispatcher * self, int worker_num)
 			}
 			break;
 	}
-
-	free(rfds);
 
 	return 0;
 }
