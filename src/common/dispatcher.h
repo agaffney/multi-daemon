@@ -32,12 +32,20 @@ struct _dispatcher_listener {
 
 typedef struct _dispatcher_listener dispatcher_listener;
 
+struct _dispatcher_worker_info {
+	int worker_num;
+	Dispatcher * dispatcher;
+	sem_t * poll_sem;
+};
+
+typedef struct _dispatcher_worker_info dispatcher_worker_info;
+
 Dispatcher * Dispatcher_init(int, int);
 void _dispatcher_destroy(Dispatcher *);
 int _dispatcher_add_listener(Dispatcher *, Socket *, int (*callback)(Dispatcher *, Socket *));
 int _dispatcher_run(Dispatcher *);
 int _dispatcher_worker_run_postfork_single(Dispatcher *, int);
-int _dispatcher_worker_run_prefork(Dispatcher *, int, sem_t *);
+int _dispatcher_worker_run_prefork(dispatcher_worker_info *);
 int _dispatcher_worker_run_thread(Dispatcher *, int, sem_t *);
 int _dispatcher_build_listener_fdset(Dispatcher *, fd_set *);
 int _dispatcher_poll_listeners(Dispatcher *, fd_set *, int);

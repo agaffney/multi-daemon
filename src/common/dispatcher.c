@@ -51,7 +51,7 @@ int _dispatcher_add_listener(Dispatcher * self, Socket * sock, int (*callback)(D
 int _dispatcher_run(Dispatcher * self)
 {
 	/* place semaphore in shared memory */
-	sem_t * poll_sem = mmap(NULL, sizeof(poll_sem), PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0);
+	sem_t * poll_sem = mmap(NULL, sizeof(sem_t), PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0);
 	if (sem_init(poll_sem, 1, 1))
 	{
 		perror("failed to create semaphore");
@@ -67,6 +67,7 @@ int _dispatcher_run(Dispatcher * self)
 			// Create a mutex/semaphore, fork off workers, then call worker_run()
 			for (int i = 0; i < self->_num_workers; i++)
 			{
+				dispatcher_worker_info worker_info = { i, self, poll_sem };
 				pid_t child_pid = fork();
 				if (child_pid < 0)
 				{
@@ -76,7 +77,7 @@ int _dispatcher_run(Dispatcher * self)
 				else if (child_pid == 0)
 				{
 					// Child
-					return _dispatcher_worker_run_prefork(self, i, poll_sem);
+					return _dispatcher_worker_run_prefork(&worker_info);
 				}
 				else
 				{
@@ -156,9 +157,10 @@ dispatcher_listener * _dispatcher_find_listener(Dispatcher * self, int socket_fd
 	return NULL;
 }
 
-int _dispatcher_worker_run_prefork(Dispatcher * self, int worker_num, sem_t * poll_sem)
+int _dispatcher_worker_run_prefork_thread(dispatcher_worker_info * worker_info)
 {
 	fd_set * rfds = (fd_set *)calloc(1, sizeof(fd_set));
+	Dispatcher * self = worker_info->dispatcher;
 
 	while (1)
 	{
@@ -167,14 +169,14 @@ int _dispatcher_worker_run_prefork(Dispatcher * self, int worker_num, sem_t * po
 		// Look for sockets that are ready for action
 		int max_fd = self->build_listener_fdset(self, rfds);
 		// Block on the semaphore
-		printf("Calling sem_wait() in worker %d\n", worker_num);
-		sem_wait(poll_sem);
+		printf("Calling sem_wait() in worker %d\n", worker_info->worker_num);
+		sem_wait(worker_info->poll_sem);
 		ready_fds = self->poll_listeners(self, rfds, max_fd);
 		if (ready_fds <= 0)
 		{
 			// Release the semaphore
-			printf("Calling sem_post() in worker %d, no socket is ready\n", worker_num);
-			sem_post(poll_sem);
+			printf("Calling sem_post() in worker %d, no socket is ready\n", worker_info->worker_num);
+			sem_post(worker_info->poll_sem);
 			continue;
 		}
 		// Figure out which listeners are ready
@@ -188,11 +190,11 @@ int _dispatcher_worker_run_prefork(Dispatcher * self, int worker_num, sem_t * po
 				{
 					last_ready_fd = j;
 					dispatcher_listener * tmp_listener = self->find_listener(self, j);
-					printf("Calling accept() in prefork worker %d\n", worker_num);
+					printf("Calling accept() in prefork worker %d\n", worker_info->worker_num);
 					Socket * newsock = tmp_listener->sock->accept(tmp_listener->sock);
 					// Release the semaphore
-					printf("Calling sem_post() in worker %d, accepted connection\n", worker_num);
-					sem_post(poll_sem);
+					printf("Calling sem_post() in worker %d, accepted connection\n", worker_info->worker_num);
+					sem_post(worker_info->poll_sem);
 					tmp_listener->callback(self, newsock);
 					newsock->destroy(newsock);
 					found_fd = 1;
@@ -210,12 +212,6 @@ int _dispatcher_worker_run_prefork(Dispatcher * self, int worker_num, sem_t * po
 	free(rfds);
 
 	return 0;
-	return 0;
-}
-
-int _dispatcher_worker_run_thread(Dispatcher * self, int worker_num, sem_t * poll_sem)
-{
-
 	return 0;
 }
 
