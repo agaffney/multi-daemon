@@ -1,7 +1,7 @@
 include Makefile.inc
 
 TARGET=multi-daemon
-LIBS=
+LIBS=-pthread
 SUBDIRS=common echo http
 
 BUILDDIRS = $(SUBDIRS:%=build-%)
@@ -22,7 +22,7 @@ $(CLEANDIRS):
 	$(MAKE) -C $(@:clean-%=%) clean
 
 $(TARGET): $(BUILDDIRS)
-	$(CC) $(CFLAGS) $(OBJS) $(LIBS) -o $@
+	$(CC) $(CFLAGS) $(LIBS) $(OBJS) -o $@
 
 clean:
 	-rm -f $(TARGET)

@@ -47,13 +47,19 @@ int _dispatcher_add_listener(Dispatcher * self, Socket * sock, int (*callback)(D
 
 int _dispatcher_run(Dispatcher * self)
 {
+	sem_t poll_sem;
+	if (sem_init(&poll_sem, 1, 1))
+	{
+		perror("failed to create semaphore");
+		return 1;
+	}
 	switch (self->_worker_model)
 	{
 		case DISPATCHER_WORKER_MODEL_NONE:
-			self->worker_run(self, 1);
+			self->worker_run(self, 1, &poll_sem);
 			break;
 		case DISPATCHER_WORKER_MODEL_POSTFORK:
-			self->worker_run(self, 1);
+			self->worker_run(self, 1, &poll_sem);
 			break;
 		case DISPATCHER_WORKER_MODEL_PREFORK:
 			// Create a mutex/semaphore, fork off workers, then call worker_run()
@@ -125,14 +131,26 @@ dispatcher_listener * _dispatcher_find_listener(Dispatcher * self, int socket_fd
 	return NULL;
 }
 
-int _dispatcher_worker_run(Dispatcher * self, int worker_num)
+int _dispatcher_worker_run_prefork(Dispatcher * self, int worker_num, sem_t * poll_sem)
+{
+
+	return 0;
+}
+
+int _dispatcher_worker_run_thread(Dispatcher * self, int worker_num, sem_t * poll_sem)
+{
+
+	return 0;
+}
+
+int _dispatcher_worker_run(Dispatcher * self, int worker_num, sem_t * poll_sem)
 {
 	int retval;
 	fd_set * rfds = (fd_set *)calloc(1, sizeof(fd_set));
 
 	switch (self->_worker_model)
 	{
-		case DISPATCHER_WORKER_MODEL_NONE:
+		case DISPATCHER_WORKER_MODEL_SINGLE:
 		case DISPATCHER_WORKER_MODEL_POSTFORK:
 			while (1)
 			{
@@ -147,7 +165,6 @@ int _dispatcher_worker_run(Dispatcher * self, int worker_num)
 				{
 					continue;
 				}
-				printf("_dispatcher_worker_run(): we found a listener that was ready!\n");
 				// Figure out which listeners are ready
 				for (int i = 0; i < ready_fds; i++)
 				{
@@ -191,6 +208,12 @@ int _dispatcher_worker_run(Dispatcher * self, int worker_num)
 
 				}
 			}
+			break;
+		case DISPATCHER_WORKER_MODEL_PREFORK:
+			return _dispatcher_worker_run_prefork(self, worker_num, poll_sem);
+			break;
+		case DISPATCHER_WORKER_MODEL_THREAD:
+			return _dispatcher_worker_run_thread(self, worker_num, poll_sem);
 			break;
 	}
 
