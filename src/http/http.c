@@ -11,9 +11,9 @@
 
 int http_entry(config_opt config_opts[])
 {
-	int i, port;
+	int port;
 
-	for(i=0;;i++)
+	for(int i = 0;; i++)
 	{
 		if (!strcmp(config_opts[i].name, ""))
 		{
