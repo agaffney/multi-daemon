@@ -56,7 +56,7 @@ int http_entry(config_opt config_opts[])
 		return 1;
 	}
 
-	Dispatcher * disp = Dispatcher_init(DISPATCHER_WORKER_MODEL_POSTFORK, 20);
+	Dispatcher * disp = Dispatcher_init(DISPATCHER_WORKER_MODEL_PREFORK, 5);
 	disp->add_listener(disp, sock, http_dispatcher_callback);
 	disp->run(disp);
 

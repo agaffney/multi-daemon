@@ -6,6 +6,10 @@
 #include <unistd.h>
 #include <stdio.h>
 
+// This is here so that MAP_ANONYMOUS is usable
+#define __USE_MISC
+#include <sys/mman.h>
+
 Dispatcher * Dispatcher_init(int worker_model, int num_workers)
 {
 	Dispatcher * self = (Dispatcher *)calloc(1, sizeof(Dispatcher));
@@ -15,7 +19,6 @@ Dispatcher * Dispatcher_init(int worker_model, int num_workers)
 	self->destroy = _dispatcher_destroy;
 	self->add_listener = _dispatcher_add_listener;
 	self->run = _dispatcher_run;
-	self->worker_run = _dispatcher_worker_run;
 	self->build_listener_fdset = _dispatcher_build_listener_fdset;
 	self->poll_listeners = _dispatcher_poll_listeners;
 	self->find_listener = _dispatcher_find_listener;
@@ -47,22 +50,44 @@ int _dispatcher_add_listener(Dispatcher * self, Socket * sock, int (*callback)(D
 
 int _dispatcher_run(Dispatcher * self)
 {
-	sem_t poll_sem;
-	if (sem_init(&poll_sem, 1, 1))
+	/* place semaphore in shared memory */
+	sem_t * poll_sem = mmap(NULL, sizeof(poll_sem), PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0);
+	if (sem_init(poll_sem, 1, 1))
 	{
 		perror("failed to create semaphore");
 		return 1;
 	}
 	switch (self->_worker_model)
 	{
-		case DISPATCHER_WORKER_MODEL_NONE:
-			self->worker_run(self, 1, &poll_sem);
-			break;
+		case DISPATCHER_WORKER_MODEL_SINGLE:
 		case DISPATCHER_WORKER_MODEL_POSTFORK:
-			self->worker_run(self, 1, &poll_sem);
+			_dispatcher_worker_run_postfork_single(self, 1);
 			break;
 		case DISPATCHER_WORKER_MODEL_PREFORK:
 			// Create a mutex/semaphore, fork off workers, then call worker_run()
+			for (int i = 0; i < self->_num_workers; i++)
+			{
+				pid_t child_pid = fork();
+				if (child_pid < 0)
+				{
+					perror("worker fork failed");
+					return 1;
+				}
+				else if (child_pid == 0)
+				{
+					// Child
+					return _dispatcher_worker_run_prefork(self, i, poll_sem);
+				}
+				else
+				{
+					// Parent
+				}
+			}
+			int child_status;
+			while (1)
+			{
+				waitpid(-1, &child_status, 0);
+			}
 			break;
 		case DISPATCHER_WORKER_MODEL_THREAD:
 			// Create a mutex/semaphore and start threads with worker_run()
@@ -93,7 +118,7 @@ int _dispatcher_build_listener_fdset(Dispatcher * self, fd_set * rfds)
 int _dispatcher_poll_listeners(Dispatcher * self, fd_set * rfds, int max_fd)
 {
 	struct timeval *timeout = (struct timeval *)calloc(1, sizeof(struct timeval));
-	timeout->tv_sec = 0;
+	timeout->tv_sec = 5;
 	timeout->tv_usec = 0;
 
 	int n = select(max_fd + 1, rfds, NULL, NULL, timeout);
@@ -133,7 +158,58 @@ dispatcher_listener * _dispatcher_find_listener(Dispatcher * self, int socket_fd
 
 int _dispatcher_worker_run_prefork(Dispatcher * self, int worker_num, sem_t * poll_sem)
 {
+	fd_set * rfds = (fd_set *)calloc(1, sizeof(fd_set));
 
+	while (1)
+	{
+		int ready_fds;
+		int last_ready_fd = -1;
+		// Look for sockets that are ready for action
+		int max_fd = self->build_listener_fdset(self, rfds);
+		// Block on the semaphore
+		printf("Calling sem_wait() in worker %d\n", worker_num);
+		sem_wait(poll_sem);
+		ready_fds = self->poll_listeners(self, rfds, max_fd);
+		if (ready_fds <= 0)
+		{
+			// Release the semaphore
+			printf("Calling sem_post() in worker %d, no socket is ready\n", worker_num);
+			sem_post(poll_sem);
+			continue;
+		}
+		// Figure out which listeners are ready
+		int found_fd;
+		for (int i = 0; i < ready_fds; i++)
+		{
+			found_fd = 0;
+			for (int j = last_ready_fd + 1; j <= max_fd; j++)
+			{
+				if (FD_ISSET(j, rfds))
+				{
+					last_ready_fd = j;
+					dispatcher_listener * tmp_listener = self->find_listener(self, j);
+					printf("Calling accept() in prefork worker %d\n", worker_num);
+					Socket * newsock = tmp_listener->sock->accept(tmp_listener->sock);
+					// Release the semaphore
+					printf("Calling sem_post() in worker %d, accepted connection\n", worker_num);
+					sem_post(poll_sem);
+					tmp_listener->callback(self, newsock);
+					newsock->destroy(newsock);
+					found_fd = 1;
+					break;
+				}
+			}
+			if (found_fd)
+			{
+				// Go back to the top loop if we handled a request
+				break;
+			}
+		}
+	}
+
+	free(rfds);
+
+	return 0;
 	return 0;
 }
 
@@ -143,78 +219,65 @@ int _dispatcher_worker_run_thread(Dispatcher * self, int worker_num, sem_t * pol
 	return 0;
 }
 
-int _dispatcher_worker_run(Dispatcher * self, int worker_num, sem_t * poll_sem)
+int _dispatcher_worker_run_postfork_single(Dispatcher * self, int worker_num)
 {
 	int retval;
 	fd_set * rfds = (fd_set *)calloc(1, sizeof(fd_set));
 
-	switch (self->_worker_model)
+	while (1)
 	{
-		case DISPATCHER_WORKER_MODEL_SINGLE:
-		case DISPATCHER_WORKER_MODEL_POSTFORK:
-			while (1)
+		int ready_fds, child_status;
+		int last_ready_fd = -1;
+		// Naively clean up after children
+		waitpid(-1, &child_status, WNOHANG);
+		// Look for sockets that are ready for action
+		int max_fd = self->build_listener_fdset(self, rfds);
+		ready_fds = self->poll_listeners(self, rfds, max_fd);
+		if (ready_fds <= 0)
+		{
+			continue;
+		}
+		// Figure out which listeners are ready
+		for (int i = 0; i < ready_fds; i++)
+		{
+			for (int j = last_ready_fd + 1; j <= max_fd; j++)
 			{
-				int ready_fds, child_status;
-				int last_ready_fd = -1;
-				// Naively clean up after children
-				waitpid(-1, &child_status, WNOHANG);
-				// Look for sockets that are ready for action
-				int max_fd = self->build_listener_fdset(self, rfds);
-				ready_fds = self->poll_listeners(self, rfds, max_fd);
-				if (ready_fds <= 0)
+				if (FD_ISSET(j, rfds))
 				{
-					continue;
-				}
-				// Figure out which listeners are ready
-				for (int i = 0; i < ready_fds; i++)
-				{
-					for (int j = last_ready_fd + 1; j <= max_fd; j++)
+					last_ready_fd = j;
+					dispatcher_listener * tmp_listener = self->find_listener(self, j);
+					Socket * newsock = tmp_listener->sock->accept(tmp_listener->sock);
+					pid_t child_pid;
+					if (self->_worker_model == DISPATCHER_WORKER_MODEL_POSTFORK)
 					{
-						
-						if (FD_ISSET(j, rfds))
+						// fork it
+						child_pid = fork();
+						if (child_pid > 0)
 						{
-							last_ready_fd = j;
-							dispatcher_listener * tmp_listener = self->find_listener(self, j);
-							Socket * newsock = tmp_listener->sock->accept(tmp_listener->sock);
-							pid_t child_pid;
-							if (self->_worker_model == DISPATCHER_WORKER_MODEL_POSTFORK)
-							{
-								// fork it
-								child_pid = fork();
-								if (child_pid > 0)
-								{
-									// Parent
-									newsock->close(newsock);
-									newsock->destroy(newsock);
-									break;
-								}
-								else
-								{
-									// Child
-									tmp_listener->sock->close(tmp_listener->sock);
-									tmp_listener->sock->destroy(tmp_listener->sock);
-								}
-							}
-							retval = tmp_listener->callback(self, newsock);
+							// Parent
+							newsock->close(newsock);
 							newsock->destroy(newsock);
-							if (self->_worker_model == DISPATCHER_WORKER_MODEL_POSTFORK && child_pid == 0)
-							{
-								// Child
-								return retval;
-							}
 							break;
 						}
+						else
+						{
+							// Child
+							tmp_listener->sock->close(tmp_listener->sock);
+							tmp_listener->sock->destroy(tmp_listener->sock);
+						}
 					}
-
+					retval = tmp_listener->callback(self, newsock);
+					newsock->destroy(newsock);
+					if (self->_worker_model == DISPATCHER_WORKER_MODEL_POSTFORK && child_pid == 0)
+					{
+						// Child
+						return retval;
+					}
+					break;
 				}
 			}
-			break;
-		case DISPATCHER_WORKER_MODEL_PREFORK:
-			return _dispatcher_worker_run_prefork(self, worker_num, poll_sem);
-			break;
-		case DISPATCHER_WORKER_MODEL_THREAD:
-			return _dispatcher_worker_run_thread(self, worker_num, poll_sem);
-			break;
+
+		}
 	}
 
 	free(rfds);
