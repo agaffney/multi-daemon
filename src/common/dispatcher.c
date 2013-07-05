@@ -5,6 +5,7 @@
 #include <sys/wait.h>
 #include <unistd.h>
 #include <stdio.h>
+#include <pthread.h>
 
 // This is here so that MAP_ANONYMOUS is usable
 #define __USE_MISC
@@ -50,7 +51,7 @@ int _dispatcher_add_listener(Dispatcher * self, Socket * sock, int (*callback)(D
 
 int _dispatcher_run(Dispatcher * self)
 {
-	/* place semaphore in shared memory */
+	// place semaphore in shared memory
 	sem_t * poll_sem = mmap(NULL, sizeof(sem_t), PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0);
 	if (sem_init(poll_sem, 1, 1))
 	{
@@ -67,7 +68,10 @@ int _dispatcher_run(Dispatcher * self)
 			// Create a mutex/semaphore, fork off workers, then call worker_run()
 			for (int i = 0; i < self->_num_workers; i++)
 			{
-				dispatcher_worker_info worker_info = { i, self, poll_sem };
+				dispatcher_worker_info * worker_info = (dispatcher_worker_info *)calloc(1, sizeof(worker_info));
+				worker_info->worker_num = i;
+				worker_info->dispatcher = self;
+				worker_info->poll_sem = poll_sem;
 				pid_t child_pid = fork();
 				if (child_pid < 0)
 				{
@@ -77,7 +81,7 @@ int _dispatcher_run(Dispatcher * self)
 				else if (child_pid == 0)
 				{
 					// Child
-					return _dispatcher_worker_run_prefork(&worker_info);
+					_dispatcher_worker_run_prefork_thread((void *)worker_info);
 				}
 				else
 				{
@@ -91,8 +95,30 @@ int _dispatcher_run(Dispatcher * self)
 			}
 			break;
 		case DISPATCHER_WORKER_MODEL_THREAD:
+		{
 			// Create a mutex/semaphore and start threads with worker_run()
+			pthread_t thread_id;
+			for (int i = 0; i < self->_num_workers; i++)
+			{
+				dispatcher_worker_info * worker_info = (dispatcher_worker_info *)calloc(1, sizeof(worker_info));
+				worker_info->worker_num = i;
+				worker_info->dispatcher = self;
+				worker_info->poll_sem = poll_sem;
+				if (pthread_create(&thread_id, NULL, _dispatcher_worker_run_prefork_thread, (void *)worker_info))
+				{
+					perror("worker thread creation failed");
+					return 1;
+				}
+			}
+			// Lazy way to just wait on threads
+			void * res;
+			if (pthread_join(thread_id, &res))
+			{
+				perror("pthread_join() failed");
+				return 1;
+			}
 			break;
+		}
 		default:
 			return 1;
 	}
@@ -157,8 +183,9 @@ dispatcher_listener * _dispatcher_find_listener(Dispatcher * self, int socket_fd
 	return NULL;
 }
 
-int _dispatcher_worker_run_prefork_thread(dispatcher_worker_info * worker_info)
+void * _dispatcher_worker_run_prefork_thread(void * arg)
 {
+	dispatcher_worker_info * worker_info = arg;
 	fd_set * rfds = (fd_set *)calloc(1, sizeof(fd_set));
 	Dispatcher * self = worker_info->dispatcher;
 
@@ -190,7 +217,7 @@ int _dispatcher_worker_run_prefork_thread(dispatcher_worker_info * worker_info)
 				{
 					last_ready_fd = j;
 					dispatcher_listener * tmp_listener = self->find_listener(self, j);
-					printf("Calling accept() in prefork worker %d\n", worker_info->worker_num);
+					printf("Calling accept() in worker %d\n", worker_info->worker_num);
 					Socket * newsock = tmp_listener->sock->accept(tmp_listener->sock);
 					// Release the semaphore
 					printf("Calling sem_post() in worker %d, accepted connection\n", worker_info->worker_num);
@@ -211,8 +238,7 @@ int _dispatcher_worker_run_prefork_thread(dispatcher_worker_info * worker_info)
 
 	free(rfds);
 
-	return 0;
-	return 0;
+	return NULL;
 }
 
 int _dispatcher_worker_run_postfork_single(Dispatcher * self, int worker_num)
