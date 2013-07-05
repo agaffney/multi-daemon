@@ -127,6 +127,9 @@ dispatcher_listener * _dispatcher_find_listener(Dispatcher * self, int socket_fd
 
 int _dispatcher_worker_run(Dispatcher * self, int worker_num)
 {
+	int retval;
+	fd_set * rfds = (fd_set *)calloc(1, sizeof(fd_set));
+
 	switch (self->_worker_model)
 	{
 		case DISPATCHER_WORKER_MODEL_NONE:
@@ -138,10 +141,8 @@ int _dispatcher_worker_run(Dispatcher * self, int worker_num)
 				// Naively clean up after children
 				waitpid(-1, &child_status, WNOHANG);
 				// Look for sockets that are ready for action
-				fd_set * rfds = (fd_set *)calloc(1, sizeof(fd_set));
 				int max_fd = self->build_listener_fdset(self, rfds);
 				ready_fds = self->poll_listeners(self, rfds, max_fd);
-				free(rfds);
 				if (ready_fds <= 0)
 				{
 					continue;
@@ -158,10 +159,11 @@ int _dispatcher_worker_run(Dispatcher * self, int worker_num)
 							last_ready_fd = j;
 							dispatcher_listener * tmp_listener = self->find_listener(self, j);
 							Socket * newsock = tmp_listener->sock->accept(tmp_listener->sock);
+							pid_t child_pid;
 							if (self->_worker_model == DISPATCHER_WORKER_MODEL_POSTFORK)
 							{
 								// fork it
-								pid_t child_pid = fork();
+								child_pid = fork();
 								if (child_pid > 0)
 								{
 									// Parent
@@ -176,7 +178,13 @@ int _dispatcher_worker_run(Dispatcher * self, int worker_num)
 									tmp_listener->sock->destroy(tmp_listener->sock);
 								}
 							}
-							tmp_listener->callback(self, newsock);
+							retval = tmp_listener->callback(self, newsock);
+							newsock->destroy(newsock);
+							if (self->_worker_model == DISPATCHER_WORKER_MODEL_POSTFORK && child_pid == 0)
+							{
+								// Child
+								return retval;
+							}
 							break;
 						}
 					}
@@ -185,6 +193,8 @@ int _dispatcher_worker_run(Dispatcher * self, int worker_num)
 			}
 			break;
 	}
+
+	free(rfds);
 
 	return 0;
 }
