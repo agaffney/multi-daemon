@@ -196,13 +196,11 @@ void * _dispatcher_worker_run_prefork_thread(void * arg)
 		// Look for sockets that are ready for action
 		int max_fd = self->build_listener_fdset(self, rfds);
 		// Block on the semaphore
-		printf("Calling sem_wait() in worker %d\n", worker_info->worker_num);
 		sem_wait(worker_info->poll_sem);
 		ready_fds = self->poll_listeners(self, rfds, max_fd);
 		if (ready_fds <= 0)
 		{
 			// Release the semaphore
-			printf("Calling sem_post() in worker %d, no socket is ready\n", worker_info->worker_num);
 			sem_post(worker_info->poll_sem);
 			continue;
 		}
@@ -217,10 +215,16 @@ void * _dispatcher_worker_run_prefork_thread(void * arg)
 				{
 					last_ready_fd = j;
 					dispatcher_listener * tmp_listener = self->find_listener(self, j);
-					printf("Calling accept() in worker %d\n", worker_info->worker_num);
-					Socket * newsock = tmp_listener->sock->accept(tmp_listener->sock);
+					Socket * newsock;
+					if (tmp_listener->sock->type == SOCK_STREAM)
+					{
+						newsock = tmp_listener->sock->accept(tmp_listener->sock);
+					}
+					else
+					{
+						newsock = tmp_listener->sock;
+					}
 					// Release the semaphore
-					printf("Calling sem_post() in worker %d, accepted connection\n", worker_info->worker_num);
 					sem_post(worker_info->poll_sem);
 					tmp_listener->callback(self, newsock);
 					newsock->destroy(newsock);
