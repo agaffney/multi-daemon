@@ -35,7 +35,7 @@ void _dispatcher_destroy(Dispatcher * self)
 	free(self);
 }
 
-int _dispatcher_add_listener(Dispatcher * self, Socket * sock, int (*callback)(Dispatcher *, Socket *))
+int _dispatcher_add_listener(Dispatcher * self, Socket * sock, int (*callback)(dispatcher_callback_info *))
 {
 	if (self->_listener_count >= _DISPATCHER_MAX_LISTENERS)
 	{
@@ -51,11 +51,17 @@ int _dispatcher_add_listener(Dispatcher * self, Socket * sock, int (*callback)(D
 
 int _dispatcher_run(Dispatcher * self)
 {
-	// place semaphore in shared memory
+	// place semaphores in shared memory
 	sem_t * poll_sem = mmap(NULL, sizeof(sem_t), PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0);
 	if (sem_init(poll_sem, 1, 1))
 	{
-		perror("failed to create semaphore");
+		perror("failed to initialize poll semaphore");
+		return 1;
+	}
+	sem_t * recv_sem = mmap(NULL, sizeof(sem_t), PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0);
+	if (sem_init(recv_sem, 1, 1))
+	{
+		perror("failed to initialize recv semaphore");
 		return 1;
 	}
 	switch (self->_worker_model)
@@ -72,6 +78,7 @@ int _dispatcher_run(Dispatcher * self)
 				worker_info->worker_num = i;
 				worker_info->dispatcher = self;
 				worker_info->poll_sem = poll_sem;
+				worker_info->recv_sem = recv_sem;
 				pid_t child_pid = fork();
 				if (child_pid < 0)
 				{
@@ -226,7 +233,9 @@ void * _dispatcher_worker_run_prefork_thread(void * arg)
 					}
 					// Release the semaphore
 					sem_post(worker_info->poll_sem);
-					tmp_listener->callback(self, newsock);
+					dispatcher_callback_info cb_info = { self, newsock, worker_info->recv_sem };
+					printf("Handling request in worker %d\n", worker_info->worker_num);
+					tmp_listener->callback(&cb_info);
 					newsock->destroy(newsock);
 					found_fd = 1;
 					break;
@@ -292,7 +301,7 @@ int _dispatcher_worker_run_postfork_single(Dispatcher * self, int worker_num)
 							tmp_listener->sock->destroy(tmp_listener->sock);
 						}
 					}
-					retval = tmp_listener->callback(self, newsock);
+					retval = tmp_listener->callback(NULL);
 					newsock->destroy(newsock);
 					if (self->_worker_model == DISPATCHER_WORKER_MODEL_POSTFORK && child_pid == 0)
 					{

@@ -101,11 +101,13 @@ int http_entry(config_opt config_opts[])
 	return 0;
 }
 
-int http_dispatcher_callback(Dispatcher * dispatcher, Socket * sock)
+int http_dispatcher_callback(dispatcher_callback_info * cb_info)
 {
 	char buf[1024];
 	char outbuf[1024];
 	int n;
+
+	Socket * sock = cb_info->sock;
 
 	while (1)
 	{

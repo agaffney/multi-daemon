@@ -11,8 +11,10 @@
 
 int echo_entry(config_opt config_opts[])
 {
-	int i, port, socket_type, worker_model, num_workers;
+	int i, port, socket_type;
 	char proto[5];
+	int worker_model = DISPATCHER_WORKER_MODEL_SINGLE;
+	int num_workers = 5;
 
 	for(i=0;;i++)
 	{
@@ -121,21 +123,21 @@ int echo_entry(config_opt config_opts[])
 	return 0;
 }
 
-int echo_dispatcher_callback(Dispatcher * dispatcher, Socket * sock)
+int echo_dispatcher_callback(dispatcher_callback_info * cb_info)
 {
-	switch (sock->type)
+	switch (cb_info->sock->type)
 	{
 		case SOCK_DGRAM:
-			return echo_recv_ready_udp(sock);
+			return echo_recv_ready_udp(cb_info->sock, cb_info->recv_sem);
 			break;
 		case SOCK_STREAM:
-			return echo_recv_ready_tcp(sock);
+			return echo_recv_ready_tcp(cb_info->sock);
 			break;
 	}
 	return 0;
 }
 
-int echo_recv_ready_udp(Socket *sock)
+int echo_recv_ready_udp(Socket *sock, sem_t * recv_sem)
 {
 	struct sockaddr_in client_addr;
 	socklen_t len = sizeof(client_addr);
@@ -143,11 +145,17 @@ int echo_recv_ready_udp(Socket *sock)
 
 	while (1)
 	{
+		sem_wait(recv_sem);
 		if (sock->recvready(sock, 0))
 		{
 			sock->recvfrom(sock, buf, sizeof(buf), (struct sockaddr *) &client_addr, &len);
+			sem_post(recv_sem);
 			printf("echo_recv_ready(): received string '%s'\n", buf);
 			sock->sendto(sock, buf, (struct sockaddr *) &client_addr, len);
+		}
+		else
+		{
+			sem_post(recv_sem);
 		}
 	}
 
