@@ -35,7 +35,7 @@ void _dispatcher_destroy(Dispatcher * self)
 	free(self);
 }
 
-int _dispatcher_add_listener(Dispatcher * self, Socket * sock, dispatcher_callback_func poll_callback, dispatcher_callback_func run_callback)
+int _dispatcher_add_listener(Dispatcher * self, Socket * sock, dispatcher_callback_func poll_callback, dispatcher_callback_func run_callback, dispatcher_callback_func cleanup_callback)
 {
 	if (self->_listener_count >= _DISPATCHER_MAX_LISTENERS)
 	{
@@ -45,6 +45,7 @@ int _dispatcher_add_listener(Dispatcher * self, Socket * sock, dispatcher_callba
 	listener->sock = sock;
 	listener->poll_callback = poll_callback;
 	listener->run_callback = run_callback;
+	listener->cleanup_callback = cleanup_callback;
 	self->_listeners[self->_listener_count] = listener;
 	self->_listener_count++;
 	return 0;

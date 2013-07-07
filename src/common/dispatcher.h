@@ -29,7 +29,7 @@ struct _Dispatcher {
 	int _worker_model;
 	int _num_workers;
 	void (*destroy)(struct _Dispatcher *);
-	int (*add_listener)(struct _Dispatcher *, Socket *, dispatcher_callback_func, dispatcher_callback_func);
+	int (*add_listener)(struct _Dispatcher *, Socket *, dispatcher_callback_func, dispatcher_callback_func, dispatcher_callback_func);
 	int (*run)(struct _Dispatcher *);
 	int (*build_listener_fdset)(struct _Dispatcher *, fd_set *);
 	int (*poll_listeners)(struct _Dispatcher *, fd_set *, int);
@@ -42,6 +42,7 @@ struct _dispatcher_listener {
 	Socket * sock;
 	dispatcher_callback_func poll_callback;
 	dispatcher_callback_func run_callback;
+	dispatcher_callback_func cleanup_callback;
 };
 
 typedef struct _dispatcher_listener dispatcher_listener;
@@ -57,7 +58,7 @@ typedef struct _dispatcher_worker_info dispatcher_worker_info;
 
 Dispatcher * Dispatcher_init(int, int);
 void _dispatcher_destroy(Dispatcher *);
-int _dispatcher_add_listener(Dispatcher *, Socket *, dispatcher_callback_func, dispatcher_callback_func);
+int _dispatcher_add_listener(Dispatcher *, Socket *, dispatcher_callback_func, dispatcher_callback_func, dispatcher_callback_func);
 int _dispatcher_run(Dispatcher *);
 int _dispatcher_worker_run_postfork_single(Dispatcher *, int);
 void * _dispatcher_worker_run_prefork_thread(void *);

@@ -92,7 +92,7 @@ int http_entry(config_opt config_opts[])
 	}
 
 	Dispatcher * disp = Dispatcher_init(worker_model, num_workers);
-	disp->add_listener(disp, sock, http_dispatcher_poll_callback, http_dispatcher_run_callback);
+	disp->add_listener(disp, sock, http_dispatcher_poll_callback, http_dispatcher_run_callback, http_dispatcher_cleanup_callback);
 	disp->run(disp);
 
 	disp->destroy(disp);
@@ -109,6 +109,12 @@ int http_dispatcher_poll_callback(dispatcher_callback_info * cb_info)
 		return 1;
 	}
 	cb_info->sock = newsock;
+	return 0;
+}
+
+int http_dispatcher_cleanup_callback(dispatcher_callback_info * cb_info)
+{
+	cb_info->sock->destroy(cb_info->sock);
 	return 0;
 }
 

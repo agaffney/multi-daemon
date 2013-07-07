@@ -114,7 +114,7 @@ int echo_entry(config_opt config_opts[])
 	}
 
 	Dispatcher * disp = Dispatcher_init(worker_model, num_workers);
-	disp->add_listener(disp, sock, echo_dispatcher_poll_callback, echo_dispatcher_run_callback);
+	disp->add_listener(disp, sock, echo_dispatcher_poll_callback, echo_dispatcher_run_callback, echo_dispatcher_cleanup_callback);
 	disp->run(disp);
 
 	disp->destroy(disp);
@@ -147,6 +147,21 @@ int echo_dispatcher_poll_callback(dispatcher_callback_info * cb_info)
 			{
 				return 1;
 			}
+			break;
+	}
+	return 0;
+}
+
+int echo_dispatcher_cleanup_callback(dispatcher_callback_info * cb_info)
+{
+	switch (cb_info->sock->type)
+	{
+		case SOCK_DGRAM:
+			free(cb_info->data[0]);
+			free(cb_info->data[1]);
+			break;
+		case SOCK_STREAM:
+			cb_info->sock->destroy(cb_info->sock);
 			break;
 	}
 	return 0;
