@@ -92,7 +92,7 @@ int http_entry(config_opt config_opts[])
 	}
 
 	Dispatcher * disp = Dispatcher_init(worker_model, num_workers);
-	disp->add_listener(disp, sock, http_dispatcher_callback);
+	disp->add_listener(disp, sock, http_dispatcher_poll_callback, http_dispatcher_run_callback);
 	disp->run(disp);
 
 	disp->destroy(disp);
@@ -101,7 +101,18 @@ int http_entry(config_opt config_opts[])
 	return 0;
 }
 
-int http_dispatcher_callback(dispatcher_callback_info * cb_info)
+int http_dispatcher_poll_callback(dispatcher_callback_info * cb_info)
+{
+	Socket * newsock = cb_info->sock->accept(cb_info->sock);
+	if (newsock == NULL)
+	{
+		return 1;
+	}
+	cb_info->sock = newsock;
+	return 0;
+}
+
+int http_dispatcher_run_callback(dispatcher_callback_info * cb_info)
 {
 	char buf[1024];
 	char outbuf[1024];

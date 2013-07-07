@@ -114,7 +114,7 @@ int echo_entry(config_opt config_opts[])
 	}
 
 	Dispatcher * disp = Dispatcher_init(worker_model, num_workers);
-	disp->add_listener(disp, sock, echo_dispatcher_callback);
+	disp->add_listener(disp, sock, echo_dispatcher_poll_callback, echo_dispatcher_run_callback);
 	disp->run(disp);
 
 	disp->destroy(disp);
@@ -123,94 +123,73 @@ int echo_entry(config_opt config_opts[])
 	return 0;
 }
 
-int echo_dispatcher_callback(dispatcher_callback_info * cb_info)
+int echo_dispatcher_poll_callback(dispatcher_callback_info * cb_info)
 {
 	switch (cb_info->sock->type)
 	{
 		case SOCK_DGRAM:
-			return echo_recv_ready_udp(cb_info->sock, cb_info->recv_sem);
+		{
+			char * buf = (char *)calloc(1, ECHO_MAX_UDP_PACKET_SIZE);
+			struct sockaddr * client_addr = (struct sockaddr *)calloc(1, sizeof(struct sockaddr));
+			socklen_t len = sizeof(struct sockaddr);
+			if (cb_info->sock->recvfrom(cb_info->sock, buf, ECHO_MAX_UDP_PACKET_SIZE - 1, client_addr, &len) <= 0)
+			{
+				// error in recvfrom
+				return 1;
+			}
+			cb_info->data[0] = (void *)buf;
+			cb_info->data[1] = (void *)client_addr;
+			break;
+		}
+		case SOCK_STREAM:
+			cb_info->sock = cb_info->sock->accept(cb_info->sock);
+			if (cb_info->sock == NULL)
+			{
+				return 1;
+			}
+			break;
+	}
+	return 0;
+}
+
+int echo_dispatcher_run_callback(dispatcher_callback_info * cb_info)
+{
+	switch (cb_info->sock->type)
+	{
+		case SOCK_DGRAM:
+			cb_info->sock->sendto(cb_info->sock, (char *)cb_info->data[0], (struct sockaddr *)cb_info->data[1], sizeof(struct sockaddr));
+			free(cb_info->data[0]);
+			free(cb_info->data[1]);
 			break;
 		case SOCK_STREAM:
-			return echo_recv_ready_tcp(cb_info->sock);
-			break;
-	}
-	return 0;
-}
-
-int echo_recv_ready_udp(Socket *sock, sem_t * recv_sem)
-{
-	struct sockaddr_in client_addr;
-	socklen_t len = sizeof(client_addr);
-	char buf[1024];
-
-	while (1)
-	{
-		sem_wait(recv_sem);
-		if (sock->recvready(sock, 0))
 		{
-			sock->recvfrom(sock, buf, sizeof(buf), (struct sockaddr *) &client_addr, &len);
-			sem_post(recv_sem);
-			printf("echo_recv_ready(): received string '%s'\n", buf);
-			sock->sendto(sock, buf, (struct sockaddr *) &client_addr, len);
-		}
-		else
-		{
-			sem_post(recv_sem);
-		}
-	}
-
-}
-
-int echo_recv_ready_tcp(Socket *sock)
-{
-	char buf[1024];
-	char outbuf[1024];
-	int n;
-	Hash * my_hash = Hash_init();
-
-	while (1)
-	{
-		if (sock->recvready(sock, 60))
-		{
-			n = sock->read(sock, buf, sizeof(buf));
-			if (n == -1)
+			int n;
+			char buf[1024], outbuf[1024];
+			Socket * sock = cb_info->sock;
+			while (1)
 			{
-				printf("echo_recv_ready_tcp(): read() error: %s\n", strerror(errno));
-				break;
-			}
-			if (n == 0)
-			{
-				printf("echo_recv_ready_tcp(): connection closed\n");
-				break;
-			}
-			rtrim(buf);
-			if (!strcmp(buf, "GIMME"))
-			{
-				int i;
-				List * keys = my_hash->keys(my_hash);
-				for (i = 0; i < keys->length(keys); i++)
+				if (sock->recvready(sock, 60))
 				{
-					char * key = keys->get(keys, i);
-					sprintf(outbuf, "%s: %s\n", keys->get(keys, i), my_hash->get(my_hash, key));
+					n = sock->read(sock, buf, sizeof(buf));
+					if (n == -1)
+					{
+						printf("echo_recv_ready_tcp(): read() error: %s\n", strerror(errno));
+						return 1;
+					}
+					if (n == 0)
+					{
+						printf("echo_recv_ready_tcp(): connection closed\n");
+						break;
+					}
+					rtrim(buf);
+					sprintf(outbuf, "%s\n", buf);
 					sock->write(sock, outbuf, strlen(outbuf));
+					buf[0] = 0;
+					break;
 				}
 			}
-			else
-			{
-				int val = 1;
-				if (my_hash->has_key(my_hash, buf))
-				{
-					val = atoi(my_hash->get(my_hash, buf)) + 1;
-				}
-				char valbuf[10];
-				sprintf(valbuf, "%d", val);
-				my_hash->set(my_hash, buf, valbuf);
-				sprintf(outbuf, "%s\n", buf);
-				sock->write(sock, outbuf, strlen(outbuf));
-			}
-			buf[0] = 0;
 		}
 	}
-
 	return 0;
 }
+

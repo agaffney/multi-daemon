@@ -35,7 +35,7 @@ void _dispatcher_destroy(Dispatcher * self)
 	free(self);
 }
 
-int _dispatcher_add_listener(Dispatcher * self, Socket * sock, int (*callback)(dispatcher_callback_info *))
+int _dispatcher_add_listener(Dispatcher * self, Socket * sock, int (*poll_callback)(dispatcher_callback_info *), int (*run_callback)(dispatcher_callback_info *))
 {
 	if (self->_listener_count >= _DISPATCHER_MAX_LISTENERS)
 	{
@@ -43,7 +43,8 @@ int _dispatcher_add_listener(Dispatcher * self, Socket * sock, int (*callback)(d
 	}
 	dispatcher_listener * listener = (dispatcher_listener *)calloc(1, sizeof(dispatcher_listener));
 	listener->sock = sock;
-	listener->callback = callback;
+	listener->poll_callback = poll_callback;
+	listener->run_callback = run_callback;
 	self->_listeners[self->_listener_count] = listener;
 	self->_listener_count++;
 	return 0;
@@ -222,21 +223,19 @@ void * _dispatcher_worker_run_prefork_thread(void * arg)
 				{
 					last_ready_fd = j;
 					dispatcher_listener * tmp_listener = self->find_listener(self, j);
-					Socket * newsock;
-					if (tmp_listener->sock->type == SOCK_STREAM)
+					dispatcher_callback_info cb_info = { self, tmp_listener->sock, {} };
+					if (tmp_listener->poll_callback(&cb_info))
 					{
-						newsock = tmp_listener->sock->accept(tmp_listener->sock);
-					}
-					else
-					{
-						newsock = tmp_listener->sock;
+						// Something went wrong in the poll_callback
+						break;
 					}
 					// Release the semaphore
 					sem_post(worker_info->poll_sem);
-					dispatcher_callback_info cb_info = { self, newsock, worker_info->recv_sem };
 					printf("Handling request in worker %d\n", worker_info->worker_num);
-					tmp_listener->callback(&cb_info);
+					tmp_listener->run_callback(&cb_info);
+/*
 					newsock->destroy(newsock);
+*/
 					found_fd = 1;
 					break;
 				}
@@ -281,7 +280,15 @@ int _dispatcher_worker_run_postfork_single(Dispatcher * self, int worker_num)
 				{
 					last_ready_fd = j;
 					dispatcher_listener * tmp_listener = self->find_listener(self, j);
+					dispatcher_callback_info cb_info = { self, tmp_listener->sock, {} };
+					if (tmp_listener->poll_callback(&cb_info))
+					{
+						// Something went wrong in the poll_callback
+						break;
+					}
+/*
 					Socket * newsock = tmp_listener->sock->accept(tmp_listener->sock);
+*/
 					pid_t child_pid;
 					if (self->_worker_model == DISPATCHER_WORKER_MODEL_POSTFORK)
 					{
@@ -290,8 +297,10 @@ int _dispatcher_worker_run_postfork_single(Dispatcher * self, int worker_num)
 						if (child_pid > 0)
 						{
 							// Parent
+/*
 							newsock->close(newsock);
 							newsock->destroy(newsock);
+*/
 							break;
 						}
 						else
@@ -301,8 +310,10 @@ int _dispatcher_worker_run_postfork_single(Dispatcher * self, int worker_num)
 							tmp_listener->sock->destroy(tmp_listener->sock);
 						}
 					}
-					retval = tmp_listener->callback(NULL);
+					retval = tmp_listener->run_callback(&cb_info);
+/*
 					newsock->destroy(newsock);
+*/
 					if (self->_worker_model == DISPATCHER_WORKER_MODEL_POSTFORK && child_pid == 0)
 					{
 						// Child
