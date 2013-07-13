@@ -70,8 +70,15 @@ int _dispatcher_run(Dispatcher * self)
 	{
 		case DISPATCHER_WORKER_MODEL_SINGLE:
 		case DISPATCHER_WORKER_MODEL_POSTFORK:
-			_dispatcher_worker_run_postfork_single(self, 1);
+		{
+			dispatcher_worker_info * worker_info = (dispatcher_worker_info *)calloc(1, sizeof(worker_info));
+			worker_info->worker_num = -1;
+			worker_info->dispatcher = self;
+			worker_info->poll_sem = poll_sem;
+			worker_info->recv_sem = recv_sem;
+			_dispatcher_worker_run((void *)worker_info);
 			break;
+		}
 		case DISPATCHER_WORKER_MODEL_PREFORK:
 			// Create a mutex/semaphore, fork off workers, then call worker_run()
 			for (int i = 0; i < self->_num_workers; i++)
@@ -90,7 +97,7 @@ int _dispatcher_run(Dispatcher * self)
 				else if (child_pid == 0)
 				{
 					// Child
-					_dispatcher_worker_run_prefork_thread((void *)worker_info);
+					_dispatcher_worker_run((void *)worker_info);
 				}
 				else
 				{
@@ -113,7 +120,7 @@ int _dispatcher_run(Dispatcher * self)
 				worker_info->worker_num = i;
 				worker_info->dispatcher = self;
 				worker_info->poll_sem = poll_sem;
-				if (pthread_create(&thread_id, NULL, _dispatcher_worker_run_prefork_thread, (void *)worker_info))
+				if (pthread_create(&thread_id, NULL, _dispatcher_worker_run, (void *)worker_info))
 				{
 					perror("worker thread creation failed");
 					return 1;
@@ -192,7 +199,7 @@ dispatcher_listener * _dispatcher_find_listener(Dispatcher * self, int socket_fd
 	return NULL;
 }
 
-void * _dispatcher_worker_run_prefork_thread(void * arg)
+void * _dispatcher_worker_run(void * arg)
 {
 	dispatcher_worker_info * worker_info = arg;
 	fd_set * rfds = (fd_set *)calloc(1, sizeof(fd_set));
@@ -202,6 +209,13 @@ void * _dispatcher_worker_run_prefork_thread(void * arg)
 	{
 		int ready_fds;
 		int last_ready_fd = -1;
+		if (self->_worker_model == DISPATCHER_WORKER_MODEL_POSTFORK)
+		{
+			// Naively clean up after children
+			int child_status;
+			printf("[%d] calling waitpid()\n", getpid());
+			waitpid(-1, &child_status, WNOHANG);
+		}
 		// Look for sockets that are ready for action
 		int max_fd = self->build_listener_fdset(self, rfds);
 		// Block on the semaphore
@@ -232,11 +246,32 @@ void * _dispatcher_worker_run_prefork_thread(void * arg)
 					}
 					// Release the semaphore
 					sem_post(worker_info->poll_sem);
-					printf("Handling request in worker %d\n", worker_info->worker_num);
+					pid_t child_pid;
+					if (self->_worker_model == DISPATCHER_WORKER_MODEL_POSTFORK)
+					{
+						// fork it
+						printf("[%d] forking\n", getpid());
+						child_pid = fork();
+						if (child_pid > 0)
+						{
+							// Parent
+//							tmp_listener->cleanup_callback(&cb_info);
+							break;
+						}
+						else
+						{
+							// Child
+						}
+					}
+					printf("[%d] Handling request in worker %d\n", getpid(), worker_info->worker_num);
 					tmp_listener->run_callback(&cb_info);
-/*
-					newsock->destroy(newsock);
-*/
+					tmp_listener->cleanup_callback(&cb_info);
+					if (self->_worker_model == DISPATCHER_WORKER_MODEL_POSTFORK && child_pid == 0)
+					{
+						// Child
+						printf("[%d] Calling exit() in child\n", getpid());
+						exit(0);
+					}
 					found_fd = 1;
 					break;
 				}
@@ -254,80 +289,4 @@ void * _dispatcher_worker_run_prefork_thread(void * arg)
 	return NULL;
 }
 
-int _dispatcher_worker_run_postfork_single(Dispatcher * self, int worker_num)
-{
-	int retval;
-	fd_set * rfds = (fd_set *)calloc(1, sizeof(fd_set));
 
-	while (1)
-	{
-		int ready_fds, child_status;
-		int last_ready_fd = -1;
-		// Naively clean up after children
-		waitpid(-1, &child_status, WNOHANG);
-		// Look for sockets that are ready for action
-		int max_fd = self->build_listener_fdset(self, rfds);
-		ready_fds = self->poll_listeners(self, rfds, max_fd);
-		if (ready_fds <= 0)
-		{
-			continue;
-		}
-		// Figure out which listeners are ready
-		for (int i = 0; i < ready_fds; i++)
-		{
-			for (int j = last_ready_fd + 1; j <= max_fd; j++)
-			{
-				if (FD_ISSET(j, rfds))
-				{
-					last_ready_fd = j;
-					dispatcher_listener * tmp_listener = self->find_listener(self, j);
-					dispatcher_callback_info cb_info = { self, tmp_listener->sock, {} };
-					if (tmp_listener->poll_callback(&cb_info))
-					{
-						// Something went wrong in the poll_callback
-						break;
-					}
-/*
-					Socket * newsock = tmp_listener->sock->accept(tmp_listener->sock);
-*/
-					pid_t child_pid;
-					if (self->_worker_model == DISPATCHER_WORKER_MODEL_POSTFORK)
-					{
-						// fork it
-						child_pid = fork();
-						if (child_pid > 0)
-						{
-							// Parent
-/*
-							newsock->close(newsock);
-							newsock->destroy(newsock);
-*/
-							break;
-						}
-						else
-						{
-							// Child
-							tmp_listener->sock->close(tmp_listener->sock);
-							tmp_listener->sock->destroy(tmp_listener->sock);
-						}
-					}
-					retval = tmp_listener->run_callback(&cb_info);
-/*
-					newsock->destroy(newsock);
-*/
-					if (self->_worker_model == DISPATCHER_WORKER_MODEL_POSTFORK && child_pid == 0)
-					{
-						// Child
-						return retval;
-					}
-					break;
-				}
-			}
-
-		}
-	}
-
-	free(rfds);
-
-	return 0;
-}
