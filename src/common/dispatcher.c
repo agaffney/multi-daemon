@@ -201,6 +201,9 @@ dispatcher_listener * _dispatcher_find_listener(Dispatcher * self, int socket_fd
 
 void * _dispatcher_worker_run(void * arg)
 {
+	int child_count = 0;
+	int child_status;
+	pid_t fork_child_pid, wait_child_pid;
 	dispatcher_worker_info * worker_info = arg;
 	fd_set * rfds = (fd_set *)calloc(1, sizeof(fd_set));
 	Dispatcher * self = worker_info->dispatcher;
@@ -212,9 +215,15 @@ void * _dispatcher_worker_run(void * arg)
 		if (self->_worker_model == DISPATCHER_WORKER_MODEL_POSTFORK)
 		{
 			// Naively clean up after children
-			int child_status;
-			printf("[%d] calling waitpid()\n", getpid());
-			waitpid(-1, &child_status, WNOHANG);
+			wait_child_pid = waitpid(-1, &child_status, WNOHANG);
+			if (wait_child_pid > 0)
+			{
+				child_count--;
+			}
+			else if (wait_child_pid == -1)
+			{
+				perror("waitpid() failed");
+			}
 		}
 		// Look for sockets that are ready for action
 		int max_fd = self->build_listener_fdset(self, rfds);
@@ -242,20 +251,21 @@ void * _dispatcher_worker_run(void * arg)
 					if (tmp_listener->poll_callback(&cb_info))
 					{
 						// Something went wrong in the poll_callback
+						sem_post(worker_info->poll_sem);
+						printf("[%d] something went wrong in the poll callback\n", getpid());
 						break;
 					}
 					// Release the semaphore
 					sem_post(worker_info->poll_sem);
-					pid_t child_pid;
 					if (self->_worker_model == DISPATCHER_WORKER_MODEL_POSTFORK)
 					{
 						// fork it
-						printf("[%d] forking\n", getpid());
-						child_pid = fork();
-						if (child_pid > 0)
+						fork_child_pid = fork();
+						if (fork_child_pid > 0)
 						{
 							// Parent
 //							tmp_listener->cleanup_callback(&cb_info);
+							child_count++;
 							break;
 						}
 						else
@@ -266,11 +276,11 @@ void * _dispatcher_worker_run(void * arg)
 					printf("[%d] Handling request in worker %d\n", getpid(), worker_info->worker_num);
 					tmp_listener->run_callback(&cb_info);
 					tmp_listener->cleanup_callback(&cb_info);
-					if (self->_worker_model == DISPATCHER_WORKER_MODEL_POSTFORK && child_pid == 0)
+					if (self->_worker_model == DISPATCHER_WORKER_MODEL_POSTFORK && fork_child_pid == 0)
 					{
 						// Child
-						printf("[%d] Calling exit() in child\n", getpid());
-						exit(0);
+						printf("[%d] Calling _exit() in child\n", getpid());
+						_exit(0);
 					}
 					found_fd = 1;
 					break;

@@ -48,6 +48,9 @@ int main(int argc, char *argv[])
 	config_opt config_opts[255];
 	int config_opts_idx;
 
+	// Disable output buffering
+	setbuf(stdout, NULL);
+
 	while ((optc = getopt_long(argc, argv, "hvdc:p:", longopts, NULL)) != -1) {
 		switch (optc){
 		case 'h':
