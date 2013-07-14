@@ -10,6 +10,7 @@ struct _Socket {
 	int socket;
 	int domain;
 	int type;
+	int _closed;
 	struct sockaddr *peer_addr;
 	void (*destroy)(struct _Socket *);
 	void (*set_peer_addr)(struct _Socket *, struct sockaddr *);

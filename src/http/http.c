@@ -114,7 +114,11 @@ int http_dispatcher_poll_callback(dispatcher_callback_info * cb_info)
 
 int http_dispatcher_cleanup_callback(dispatcher_callback_info * cb_info)
 {
-	cb_info->sock->close(cb_info->sock);
+	if (cb_info->extra_flag == 1)
+	{
+		// Parent process with POSTFORK model
+		cb_info->sock->close(cb_info->sock);
+	}
 	cb_info->sock->destroy(cb_info->sock);
 	return 0;
 }
@@ -140,6 +144,7 @@ int http_dispatcher_run_callback(dispatcher_callback_info * cb_info)
 			if (n == 0)
 			{
 				printf("http_accept(): connection closed\n");
+				sock->close(sock);
 				break;
 			}
 			HttpRequest * req = HttpRequest_init();

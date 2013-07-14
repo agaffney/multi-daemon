@@ -223,5 +223,15 @@ int _socket_write(Socket *self, char *buf, int buflen)
 
 int _socket_close(Socket * self)
 {
-	return close(self->socket);
+	int retval;
+	if (self->_closed == 0)
+	{
+		retval = close(self->socket);
+		if (retval == 0)
+		{
+			self->_closed = 1;
+		}
+		return retval;
+	}
+	return 0;
 }

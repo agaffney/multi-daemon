@@ -235,6 +235,7 @@ void * _dispatcher_worker_run(void * arg)
 						if (fork_child_pid > 0)
 						{
 							// Parent
+							cb_info.extra_flag = 1;
 							tmp_listener->cleanup_callback(&cb_info);
 							printf("[%d] forked off child with PID %d\n", getpid(), fork_child_pid);
 							child_count++;

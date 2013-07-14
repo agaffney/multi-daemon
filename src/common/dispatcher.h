@@ -17,6 +17,7 @@ struct _dispatcher_callback_info {
 	struct _Dispatcher * dispatcher;
 	Socket * sock;
 	void * data[5];
+	int extra_flag;
 };
 
 typedef struct _dispatcher_callback_info dispatcher_callback_info;
