@@ -51,7 +51,6 @@ struct _dispatcher_worker_info {
 	int worker_num;
 	Dispatcher * dispatcher;
 	sem_t * poll_sem;
-	sem_t * recv_sem;
 };
 
 typedef struct _dispatcher_worker_info dispatcher_worker_info;

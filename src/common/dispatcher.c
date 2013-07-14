@@ -60,12 +60,6 @@ int _dispatcher_run(Dispatcher * self)
 		perror("failed to initialize poll semaphore");
 		return 1;
 	}
-	sem_t * recv_sem = mmap(NULL, sizeof(sem_t), PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0);
-	if (sem_init(recv_sem, 1, 1))
-	{
-		perror("failed to initialize recv semaphore");
-		return 1;
-	}
 	switch (self->_worker_model)
 	{
 		case DISPATCHER_WORKER_MODEL_SINGLE:
@@ -75,7 +69,6 @@ int _dispatcher_run(Dispatcher * self)
 			worker_info->worker_num = -1;
 			worker_info->dispatcher = self;
 			worker_info->poll_sem = poll_sem;
-			worker_info->recv_sem = recv_sem;
 			_dispatcher_worker_run((void *)worker_info);
 			break;
 		}
@@ -87,7 +80,6 @@ int _dispatcher_run(Dispatcher * self)
 				worker_info->worker_num = i;
 				worker_info->dispatcher = self;
 				worker_info->poll_sem = poll_sem;
-				worker_info->recv_sem = recv_sem;
 				pid_t child_pid = fork();
 				if (child_pid < 0)
 				{
@@ -161,30 +153,14 @@ int _dispatcher_build_listener_fdset(Dispatcher * self, fd_set * rfds)
 int _dispatcher_poll_listeners(Dispatcher * self, fd_set * rfds, int max_fd)
 {
 	struct timeval *timeout = (struct timeval *)calloc(1, sizeof(struct timeval));
-	timeout->tv_sec = 5;
-	timeout->tv_usec = 0;
+	timeout->tv_sec = 0;
+	timeout->tv_usec = 10000; // 0.1 seconds
 
 	int n = select(max_fd + 1, rfds, NULL, NULL, timeout);
 
 	free(timeout);
 
 	return n;
-
-/*
-	if (n < 0)
-	{
-		printf("_dispatcher_poll_listeners(): %s\n", strerror(errno));
-		return -1;
-	}
-	if (n == 0)
-	{
-		// Timeout
-	}
-	if (FD_ISSET(self->socket, &rfds))
-	{
-		return 1;
-	}
-*/
 }
 
 dispatcher_listener * _dispatcher_find_listener(Dispatcher * self, int socket_fd)
@@ -220,10 +196,6 @@ void * _dispatcher_worker_run(void * arg)
 			{
 				child_count--;
 			}
-			else if (wait_child_pid == -1)
-			{
-				perror("waitpid() failed");
-			}
 		}
 		// Look for sockets that are ready for action
 		int max_fd = self->build_listener_fdset(self, rfds);
@@ -252,7 +224,6 @@ void * _dispatcher_worker_run(void * arg)
 					{
 						// Something went wrong in the poll_callback
 						sem_post(worker_info->poll_sem);
-						printf("[%d] something went wrong in the poll callback\n", getpid());
 						break;
 					}
 					// Release the semaphore
@@ -264,13 +235,15 @@ void * _dispatcher_worker_run(void * arg)
 						if (fork_child_pid > 0)
 						{
 							// Parent
-//							tmp_listener->cleanup_callback(&cb_info);
+							tmp_listener->cleanup_callback(&cb_info);
+							printf("[%d] forked off child with PID %d\n", getpid(), fork_child_pid);
 							child_count++;
 							break;
 						}
 						else
 						{
 							// Child
+							worker_info->worker_num = child_count;
 						}
 					}
 					printf("[%d] Handling request in worker %d\n", getpid(), worker_info->worker_num);
@@ -292,6 +265,8 @@ void * _dispatcher_worker_run(void * arg)
 				break;
 			}
 		}
+		// Release the semaphore if we didn't find anything
+		sem_post(worker_info->poll_sem);
 	}
 
 	free(rfds);

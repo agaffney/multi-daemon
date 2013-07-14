@@ -114,6 +114,7 @@ int http_dispatcher_poll_callback(dispatcher_callback_info * cb_info)
 
 int http_dispatcher_cleanup_callback(dispatcher_callback_info * cb_info)
 {
+	cb_info->sock->close(cb_info->sock);
 	cb_info->sock->destroy(cb_info->sock);
 	return 0;
 }
