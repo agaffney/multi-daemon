@@ -3,8 +3,8 @@
 
 #include "socket.h"
 
-#include <sys/select.h>
 #include <semaphore.h>
+#include <sys/epoll.h>
 
 #define _DISPATCHER_MAX_LISTENERS 100
 
@@ -32,9 +32,6 @@ struct _Dispatcher {
 	void (*destroy)(struct _Dispatcher *);
 	int (*add_listener)(struct _Dispatcher *, Socket *, dispatcher_callback_func, dispatcher_callback_func, dispatcher_callback_func);
 	int (*run)(struct _Dispatcher *);
-	int (*build_listener_fdset)(struct _Dispatcher *, fd_set *);
-	int (*poll_listeners)(struct _Dispatcher *, fd_set *, int);
-	struct _dispatcher_listener * (*find_listener)(struct _Dispatcher *, int);
 };
 
 typedef struct _Dispatcher Dispatcher;
@@ -61,8 +58,7 @@ void _dispatcher_destroy(Dispatcher *);
 int _dispatcher_add_listener(Dispatcher *, Socket *, dispatcher_callback_func, dispatcher_callback_func, dispatcher_callback_func);
 int _dispatcher_run(Dispatcher *);
 void * _dispatcher_worker_run(void *);
-int _dispatcher_build_listener_fdset(Dispatcher *, fd_set *);
-int _dispatcher_poll_listeners(Dispatcher *, fd_set *, int);
-dispatcher_listener * _dispatcher_find_listener(Dispatcher *, int);
+int _dispatcher_build_listener_epoll_set(Dispatcher *);
+int _dispatcher_poll_listeners(Dispatcher *, int, struct epoll_event *, int);
 
 #endif

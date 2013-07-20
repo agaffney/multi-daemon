@@ -20,9 +20,6 @@ Dispatcher * Dispatcher_init(int worker_model, int num_workers)
 	self->destroy = _dispatcher_destroy;
 	self->add_listener = _dispatcher_add_listener;
 	self->run = _dispatcher_run;
-	self->build_listener_fdset = _dispatcher_build_listener_fdset;
-	self->poll_listeners = _dispatcher_poll_listeners;
-	self->find_listener = _dispatcher_find_listener;
 	return self;
 }
 
@@ -133,46 +130,27 @@ int _dispatcher_run(Dispatcher * self)
 	return 0;
 }
 
-int _dispatcher_build_listener_fdset(Dispatcher * self, fd_set * rfds)
+int _dispatcher_build_listener_epoll_set(Dispatcher * self)
 {
-	int max_fd = -1;
+	struct epoll_event ev;
+	int epollfd = epoll_create(1);
 
-	FD_ZERO(rfds);
 	for (int i = 0; i < self->_listener_count; i++)
 	{
-		FD_SET(self->_listeners[i]->sock->socket, rfds);
-		if (self->_listeners[i]->sock->socket > max_fd)
-		{
-			max_fd = self->_listeners[i]->sock->socket;
+		ev.events = EPOLLIN;
+		ev.data.fd = self->_listeners[i]->sock->socket;
+		if (epoll_ctl(epollfd, EPOLL_CTL_ADD, self->_listeners[i]->sock->socket, &ev) == -1) {
+			perror("epoll_ctl failed");
+			return -1;
 		}
 	}
 
-	return max_fd;
+	return epollfd;
 }
 
-int _dispatcher_poll_listeners(Dispatcher * self, fd_set * rfds, int max_fd)
+int _dispatcher_poll_listeners(Dispatcher * self, int epollfd, struct epoll_event *events, int max_events)
 {
-	struct timeval *timeout = (struct timeval *)calloc(1, sizeof(struct timeval));
-	timeout->tv_sec = 0;
-	timeout->tv_usec = 10000; // 0.1 seconds
-
-	int n = select(max_fd + 1, rfds, NULL, NULL, timeout);
-
-	free(timeout);
-
-	return n;
-}
-
-dispatcher_listener * _dispatcher_find_listener(Dispatcher * self, int socket_fd)
-{
-	for (int i = 0; i < self->_listener_count; i++)
-	{
-		if (self->_listeners[i]->sock->socket == socket_fd)
-		{
-			return self->_listeners[i];
-		}
-	}
-	return NULL;
+	return epoll_wait(epollfd, events, max_events, -1);
 }
 
 void * _dispatcher_worker_run(void * arg)
@@ -181,13 +159,14 @@ void * _dispatcher_worker_run(void * arg)
 	int child_status;
 	pid_t fork_child_pid, wait_child_pid;
 	dispatcher_worker_info * worker_info = arg;
-	fd_set * rfds = (fd_set *)calloc(1, sizeof(fd_set));
 	Dispatcher * self = worker_info->dispatcher;
+	// Build epoll set
+	int epollfd = _dispatcher_build_listener_epoll_set(self);
+	struct epoll_event events[10];
 
 	while (1)
 	{
 		int ready_fds;
-		int last_ready_fd = -1;
 		if (self->_worker_model == DISPATCHER_WORKER_MODEL_POSTFORK)
 		{
 			// Naively clean up after children
@@ -198,10 +177,9 @@ void * _dispatcher_worker_run(void * arg)
 			}
 		}
 		// Look for sockets that are ready for action
-		int max_fd = self->build_listener_fdset(self, rfds);
 		// Block on the semaphore
 		sem_wait(worker_info->poll_sem);
-		ready_fds = self->poll_listeners(self, rfds, max_fd);
+		ready_fds = _dispatcher_poll_listeners(self, epollfd, events, 10);
 		if (ready_fds <= 0)
 		{
 			// Release the semaphore
@@ -213,12 +191,11 @@ void * _dispatcher_worker_run(void * arg)
 		for (int i = 0; i < ready_fds; i++)
 		{
 			found_fd = 0;
-			for (int j = last_ready_fd + 1; j <= max_fd; j++)
+			for (int j = 0; j < self->_listener_count; j++)
 			{
-				if (FD_ISSET(j, rfds))
+				dispatcher_listener * tmp_listener = self->_listeners[j];
+				if (tmp_listener->sock->socket == events[i].data.fd)
 				{
-					last_ready_fd = j;
-					dispatcher_listener * tmp_listener = self->find_listener(self, j);
 					dispatcher_callback_info cb_info = { self, tmp_listener->sock, {} };
 					if (tmp_listener->poll_callback(&cb_info))
 					{
@@ -269,8 +246,6 @@ void * _dispatcher_worker_run(void * arg)
 		// Release the semaphore if we didn't find anything
 		sem_post(worker_info->poll_sem);
 	}
-
-	free(rfds);
 
 	return NULL;
 }
