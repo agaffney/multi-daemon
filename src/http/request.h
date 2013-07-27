@@ -3,6 +3,7 @@
 struct _HttpRequest {
 	char method[20];
 	char url[1024];
+	char decoded_url[1024];
 	char http_version[15];
 	Hash * headers;
 	void (*destroy)(struct _HttpRequest *);

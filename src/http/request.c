@@ -54,7 +54,11 @@ int _http_request_parse(HttpRequest * self, char * buf)
 				free(line);
 				return 0;
 			}
-			printf("Request: %s %s %s\n", self->method, self->url, self->http_version);
+			if (urldecode(self->decoded_url, self->url))
+			{
+				return 0;
+			}
+			printf("Request: %s %s (%s) %s\n", self->method, self->url, self->decoded_url, self->http_version);
 		}
 		else
 		{
