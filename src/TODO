@@ -1,2 +1,3 @@
 * Add a read buffer to the Socket object. This allows doing a large read from the socket once and then doing one character at a time reads from the memory buffer. This will make supporting pipelining far easier.
 * Move reading of request into HttpRequest object
+* add unit testing, probably using unity
