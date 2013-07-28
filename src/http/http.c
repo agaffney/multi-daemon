@@ -125,40 +125,27 @@ int http_dispatcher_cleanup_callback(dispatcher_callback_info * cb_info)
 
 int http_dispatcher_run_callback(dispatcher_callback_info * cb_info)
 {
-	char buf[1024];
 	char outbuf[1024];
-	int n;
 
 	Socket * sock = cb_info->sock;
 
 	while (1)
 	{
-		if (sock->recvready(sock, 60))
+		HttpRequest * req = HttpRequest_init();
+		if (!req->read_from_socket(req, sock))
 		{
-			n = sock->read(sock, buf, sizeof(buf));
-			if (n == -1)
-			{
-				printf("http_accept(): read() error: %s\n", strerror(errno));
-				break;
-			}
-			if (n == 0)
-			{
-				printf("http_accept(): connection closed\n");
-				sock->close(sock);
-				break;
-			}
-			HttpRequest * req = HttpRequest_init();
-			req->parse(req, buf);
-			HttpResponse * resp = HttpResponse_init();
-			strcpy(resp->http_version, req->http_version);
-			resp->set_status(resp, 200);
-			resp->headers->set(resp->headers, "Content-length", "0");
-			resp->output(resp, outbuf, sizeof(outbuf));
-			sock->write(sock, outbuf, strlen(outbuf));
-			req->destroy(req);
-			resp->destroy(resp);
+			// An error occured while reading from the socket or parsing the request
 			break;
 		}
+		HttpResponse * resp = HttpResponse_init();
+		strcpy(resp->http_version, req->http_version);
+		resp->set_status(resp, 200);
+		resp->headers->set(resp->headers, "Content-length", "0");
+		resp->output(resp, outbuf, sizeof(outbuf));
+		sock->write(sock, outbuf, strlen(outbuf));
+		req->destroy(req);
+		resp->destroy(resp);
+		break;
 	}
 	if (sock->close(sock) < 0)
 	{
