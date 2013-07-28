@@ -224,7 +224,7 @@ void * _dispatcher_worker_run(void * arg)
 							worker_info->worker_num = child_count;
 						}
 					}
-					printf("[%d] Handling request in worker %d\n", getpid(), worker_info->worker_num);
+//					printf("[%d] Handling request in worker %d\n", getpid(), worker_info->worker_num);
 					tmp_listener->run_callback(&cb_info);
 					tmp_listener->cleanup_callback(&cb_info);
 					if (self->_worker_model == DISPATCHER_WORKER_MODEL_POSTFORK && fork_child_pid == 0)

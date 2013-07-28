@@ -204,7 +204,7 @@ void _socket_unset_flag(Socket *self, int flag)
 	fcntl(self->socket, F_SETFL, flags & ~flag);
 }
 
-int _socket_read(Socket *self, char *dst, int dstlen)
+int _socket_read(Socket *self, char *dst, int size)
 {
 	int read_buf_data_len, copy_len;
 	if (self->_read_buf_offset >= self->_read_buf_len)
@@ -225,10 +225,10 @@ int _socket_read(Socket *self, char *dst, int dstlen)
 	}
 	// return what's in the read buffer
 	read_buf_data_len = self->_read_buf_len - self->_read_buf_offset;
-	if (read_buf_data_len > (dstlen - 1))
+	if (read_buf_data_len > size)
 	{
 		// more data in the buffer than the caller wants
-		copy_len = dstlen - 1;
+		copy_len = size;
 	}
 	else
 	{
