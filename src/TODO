@@ -1,2 +1,10 @@
-* Move reading of request into HttpRequest object
+common
+======
 * add unit testing, probably using unity
+* rework so that each daemon is its own binary
+ - split commandline and config file parsing into reusable library
+ - modify Makefiles to create targets for each daemon that just recurse into that dir
+ - each daemon has its own test dir
+ - top level Makefile has auto <daemon>-test targets that run 'make -C <daemon> test'
+ - 'make test' at global level depends on all auto <daemon>-auto targets
+
