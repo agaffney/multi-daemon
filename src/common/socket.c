@@ -204,16 +204,43 @@ void _socket_unset_flag(Socket *self, int flag)
 	fcntl(self->socket, F_SETFL, flags & ~flag);
 }
 
-int _socket_read(Socket *self, char *buf, int buflen)
+int _socket_read(Socket *self, char *dst, int dstlen)
 {
-	int n = 0;
-	n = read(self->socket, buf, buflen);
-	if (n >= 0)
+	int read_buf_data_len, copy_len;
+	if (self->_read_buf_offset >= self->_read_buf_len)
 	{
-		// Null terminate the string since read() doesn't
-		buf[n] = 0;
+		// read buffer is empty
+		int n = read(self->socket, self->_read_buf, SOCKET_READ_BUF_LEN - 1);
+		if (n >= 0)
+		{
+			// Null terminate the string since read() doesn't
+			self->_read_buf[n] = 0;
+			self->_read_buf_offset = 0;
+			self->_read_buf_len = n;
+		}
+		else
+		{
+			return n;
+		}
 	}
-	return n;
+	// return what's in the read buffer
+	read_buf_data_len = self->_read_buf_len - self->_read_buf_offset;
+	if (read_buf_data_len > (dstlen - 1))
+	{
+		// more data in the buffer than the caller wants
+		copy_len = dstlen - 1;
+	}
+	else
+	{
+		// entire buffer will fit in dst
+		copy_len = read_buf_data_len;
+	}
+	// copy data from read buffer to dst
+	memcpy(dst, &self->_read_buf[self->_read_buf_offset], copy_len);
+	dst[copy_len] = 0;
+	// make sure we update the read buffer offset
+	self->_read_buf_offset += copy_len;
+	return copy_len;
 }
 
 int _socket_write(Socket *self, char *buf, int buflen)

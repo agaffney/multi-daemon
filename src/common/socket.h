@@ -6,12 +6,23 @@
 #include <arpa/inet.h>
 #include <fcntl.h>
 
+#define SOCKET_READ_BUF_LEN 4096
+
 struct _Socket {
+	// socket fd
 	int socket;
+	// socket attributes
 	int domain;
 	int type;
+	// flag for whether we've called close()
 	int _closed;
+	// read buffer
+	int _read_buf_offset;
+	int _read_buf_len;
+	char _read_buf[SOCKET_READ_BUF_LEN];
+	// client address
 	struct sockaddr *peer_addr;
+	// function pointers
 	void (*destroy)(struct _Socket *);
 	void (*set_peer_addr)(struct _Socket *, struct sockaddr *);
 	struct sockaddr * (*get_peer_addr)(struct _Socket *);
