@@ -45,11 +45,11 @@ int main(int argc, char *argv[])
 	char service[20] = "";
 	char pidfile[255] = "";
 	char configfile[255] = "";
-	config_opt config_opts[255];
-	int config_opts_idx;
 
 	// Disable output buffering
 	setbuf(stdout, NULL);
+
+	Hash * config_opts = Hash_init();
 
 	while ((optc = getopt_long(argc, argv, "hvdc:p:", longopts, NULL)) != -1) {
 		switch (optc){
@@ -89,9 +89,9 @@ int main(int argc, char *argv[])
 	// Parse the config file, if specified
 	if(strcmp(configfile, ""))
 	{
-		config_opts_idx = config_parse_file(configfile, service, config_opts, sizeof(config_opts));
-		if (config_opts_idx < 0)
+		if (config_parse_file(configfile, service, config_opts) <= 0)
 		{
+			// error parsing config
 			return 1;
 		}
 	}
@@ -107,8 +107,6 @@ int main(int argc, char *argv[])
 				usage();
 				return 1;
 			}
-			strncpy(config_opts[config_opts_idx].name, firstpart, sizeof(config_opts[config_opts_idx].name));
-			config_opts[config_opts_idx].name[sizeof(config_opts[config_opts_idx].name)-1] = 0;
 			char *secondpart = strtok(NULL, "");
 			if (secondpart == NULL)
 			{
@@ -116,12 +114,8 @@ int main(int argc, char *argv[])
 				usage();
 				return 1;
 			}
-			strncpy(config_opts[config_opts_idx].value, secondpart, sizeof(config_opts[config_opts_idx].value));
-			config_opts[config_opts_idx].value[sizeof(config_opts[config_opts_idx].value)-1] = 0;
-			config_opts_idx++;
+			config_opts->set(config_opts, firstpart, secondpart);
 		}
-		config_opts[config_opts_idx].name[0] = 0;
-		config_opts[config_opts_idx].value[0] = 0;
 	}
 
 	// Lookup the function to call in the dispatch table

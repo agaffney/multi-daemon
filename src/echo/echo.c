@@ -9,7 +9,7 @@
 #include <string.h>
 #include <errno.h>
 
-int echo_entry(config_opt config_opts[])
+int echo_entry(Hash * config_opts)
 {
 	int i, port, socket_type;
 	char proto[5];

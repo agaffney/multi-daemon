@@ -1,5 +1,6 @@
 #include "config.h"
 #include "main.h"
+#include "util.h"
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -13,27 +14,10 @@ int config_parse_error(char *configfile, char *line, int linenum)
 	return -1;
 }
 
-char * config_get_option(char * opt, config_opt config_opts[])
+int config_parse_file(char *configfile, char *service, Hash * config_opts)
 {
-	for (int i = 0;; i++)
-	{
-		if (!strcmp(config_opts[i].name, ""))
-		{
-			// End of options
-			break;
-		}
-		if (!strcmp(config_opts[i].name, opt))
-		{
-			return config_opts[i].value;
-		}
-	}
-	return NULL;
-}
-
-int config_parse_file(char *configfile, char *service, config_opt config_opts[], int config_opts_len)
-{
-	int config_opts_idx = 0;
 	FILE *config_fd;
+	char buf[1024], header[50];
 
 	config_fd = fopen(configfile, "r");
 	if (config_fd == NULL)
@@ -42,13 +26,6 @@ int config_parse_file(char *configfile, char *service, config_opt config_opts[],
 		return -1;
 	}
 
-	char *buf = malloc(1024);
-	char *header = malloc(50);
-	if (buf == NULL || header == NULL)
-	{
-		fprintf(stderr, "Panic!\n");
-		return -1;
-	}
 	int linenum;
 	for (linenum = 1;; linenum++)
 	{
@@ -87,29 +64,15 @@ int config_parse_file(char *configfile, char *service, config_opt config_opts[],
 		{
 			return config_parse_error(configfile, buf, linenum);
 		}
-		if (!strcmp(header, "main") || !strcmp(header, service))
+		if (!strcmp(header, "common") || !strcmp(header, service))
 		{
-			strncpy(config_opts[config_opts_idx].name, key, sizeof(config_opts[config_opts_idx].name));
-			config_opts[config_opts_idx].name[sizeof(config_opts[config_opts_idx].name)-1] = 0;
 			// Strip off trailing whitespace
-			while (1)
-			{
-				if (isspace(value[strlen(value)-1]))
-				{
-					value[strlen(value)-1] = 0;
-					continue;
-				}
-				break;
-			}
-			strncpy(config_opts[config_opts_idx].value, value, sizeof(config_opts[config_opts_idx].value));
-			config_opts[config_opts_idx].value[sizeof(config_opts[config_opts_idx].value)-1] = 0;
-			config_opts_idx++;
+			rtrim(value);
+			config_opts->set(config_opts, key, value);
 		}
 	}
 
-	free(buf);
-	free(header);
 	fclose(config_fd);
 
-	return config_opts_idx;
+	return 1;
 }
