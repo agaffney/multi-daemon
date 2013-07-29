@@ -7,13 +7,30 @@
 #include <string.h>
 #include <ctype.h>
 
-int parse_error(char *configfile, char *line, int linenum)
+int config_parse_error(char *configfile, char *line, int linenum)
 {
 	fprintf(stderr, "Could not parse file '%s'. Error on line %d:\n\n%s", configfile, linenum, line);
 	return -1;
 }
 
-int parse_config_file(char *configfile, char *service, config_opt config_opts[], int config_opts_len)
+char * config_get_option(char * opt, config_opt config_opts[])
+{
+	for (int i = 0;; i++)
+	{
+		if (!strcmp(config_opts[i].name, ""))
+		{
+			// End of options
+			break;
+		}
+		if (!strcmp(config_opts[i].name, opt))
+		{
+			return config_opts[i].value;
+		}
+	}
+	return NULL;
+}
+
+int config_parse_file(char *configfile, char *service, config_opt config_opts[], int config_opts_len)
 {
 	int config_opts_idx = 0;
 	FILE *config_fd;
@@ -54,7 +71,7 @@ int parse_config_file(char *configfile, char *service, config_opt config_opts[],
 			// Section header
 			if (!sscanf(buf, "[%49[a-z]]", header))
 			{
-				return parse_error(configfile, buf, linenum);
+				return config_parse_error(configfile, buf, linenum);
 			}
 			continue;
 		}
@@ -63,12 +80,12 @@ int parse_config_file(char *configfile, char *service, config_opt config_opts[],
 		char *key = strtok(buf, "=");
 		if (key == NULL)
 		{
-			return parse_error(configfile, buf, linenum);
+			return config_parse_error(configfile, buf, linenum);
 		}
 		char *value = strtok(NULL, "");
 		if (value == NULL)
 		{
-			return parse_error(configfile, buf, linenum);
+			return config_parse_error(configfile, buf, linenum);
 		}
 		if (!strcmp(header, "main") || !strcmp(header, service))
 		{

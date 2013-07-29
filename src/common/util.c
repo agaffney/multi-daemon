@@ -69,3 +69,34 @@ int urldecode(char * dst, char * src)
 	}
 	return 0;
 }
+
+int is_true(char * value)
+{
+	if (atoi(value) == 1)
+	{
+		return 1;
+	}
+	char * tmp = (char *)calloc(1, strlen(value) + 1);
+	for (int i = 0;; i++)
+	{
+		if (value[i] == 0)
+		{
+			// end of string
+			break;
+		}
+		tmp[i] = tolower(value[i]);
+	}
+	if (!strcmp(tmp, "true"))
+	{
+		return 1;
+	}
+	if (!strcmp(tmp, "on"))
+	{
+		return 1;
+	}
+	if (!strcmp(tmp, "yes"))
+	{
+		return 1;
+	}
+	return 0;
+}

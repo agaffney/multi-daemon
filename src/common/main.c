@@ -89,7 +89,7 @@ int main(int argc, char *argv[])
 	// Parse the config file, if specified
 	if(strcmp(configfile, ""))
 	{
-		config_opts_idx = parse_config_file(configfile, service, config_opts, sizeof(config_opts));
+		config_opts_idx = config_parse_file(configfile, service, config_opts, sizeof(config_opts));
 		if (config_opts_idx < 0)
 		{
 			return 1;
