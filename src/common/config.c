@@ -6,7 +6,6 @@
 #include <stdio.h>
 #include <errno.h>
 #include <string.h>
-#include <ctype.h>
 
 int config_parse_error(char *configfile, char *line, int linenum)
 {
