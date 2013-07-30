@@ -9,64 +9,52 @@
 #include <string.h>
 #include <errno.h>
 
-int http_entry(config_opt config_opts[])
+int http_entry(Hash * config_opts)
 {
 	int port;
 	int worker_model = DISPATCHER_WORKER_MODEL_SINGLE;
 	int num_workers = 5;
+	char * tmpvalue;
 
-	for(int i = 0;; i++)
+	if ((tmpvalue = config_opts->get(config_opts, "port")) != NULL)
 	{
-		if (!strcmp(config_opts[i].name, ""))
+		port = atoi(tmpvalue);
+		if (port <= 0 || port >= 65535)
 		{
-			// End of options
-			break;
+			fprintf(stderr, "Invalid port specification: %s\n", tmpvalue);
+			return 1;
 		}
-		if (!strcmp(config_opts[i].name, "port"))
+	}
+	if ((tmpvalue = config_opts->get(config_opts, "worker_model")) != NULL)
+	{
+		if (!strcmp(tmpvalue, "single"))
 		{
-			port = atoi(config_opts[i].value);
-			if (port <= 0 || port >= 65535)
-			{
-				fprintf(stderr, "Invalid port specification: %s\n", config_opts[i].value);
-				return 1;
-			}
+			worker_model = DISPATCHER_WORKER_MODEL_SINGLE;
 		}
-		else if (!strcmp(config_opts[i].name, "worker_model"))
+		else if (!strcmp(tmpvalue, "postfork"))
 		{
-			if (!strcmp(config_opts[i].value, "single"))
-			{
-				worker_model = DISPATCHER_WORKER_MODEL_SINGLE;
-			}
-			else if (!strcmp(config_opts[i].value, "postfork"))
-			{
-				worker_model = DISPATCHER_WORKER_MODEL_POSTFORK;
-			}
-			else if (!strcmp(config_opts[i].value, "prefork"))
-			{
-				worker_model = DISPATCHER_WORKER_MODEL_PREFORK;
-			}
-			else if (!strcmp(config_opts[i].value, "thread"))
-			{
-				worker_model = DISPATCHER_WORKER_MODEL_THREAD;
-			}
-			else
-			{
-				fprintf(stderr, "Invalid worker_model specification: %s\n", config_opts[i].value);
-				return 1;
-			}
+			worker_model = DISPATCHER_WORKER_MODEL_POSTFORK;
 		}
-		else if (!strcmp(config_opts[i].name, "num_workers"))
+		else if (!strcmp(tmpvalue, "prefork"))
 		{
-			num_workers = atoi(config_opts[i].value);
-			if (num_workers <= 0 || num_workers > 200)
-			{
-				fprintf(stderr, "Invalid num_workers specification: %s\n", config_opts[i].value);
-				return 1;
-			}
+			worker_model = DISPATCHER_WORKER_MODEL_PREFORK;
+		}
+		else if (!strcmp(tmpvalue, "thread"))
+		{
+			worker_model = DISPATCHER_WORKER_MODEL_THREAD;
 		}
 		else
 		{
-			fprintf(stderr, "Unsupported option: %s\n", config_opts[i].name);
+			fprintf(stderr, "Invalid worker_model specification: %s\n", tmpvalue);
+			return 1;
+		}
+	}
+	if ((tmpvalue = config_opts->get(config_opts, "num_workers")) != NULL)
+	{
+		num_workers = atoi(tmpvalue);
+		if (num_workers <= 0 || num_workers > 200)
+		{
+			fprintf(stderr, "Invalid num_workers specification: %s\n", tmpvalue);
 			return 1;
 		}
 	}

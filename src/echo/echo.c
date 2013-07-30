@@ -11,81 +11,69 @@
 
 int echo_entry(Hash * config_opts)
 {
-	int i, port, socket_type;
+	int port, socket_type;
 	char proto[5];
 	int worker_model = DISPATCHER_WORKER_MODEL_SINGLE;
 	int num_workers = 5;
+	char * tmpvalue;
 
-	for(i=0;;i++)
+	if ((tmpvalue = config_opts->get(config_opts, "port")) != NULL)
 	{
-		if (!strcmp(config_opts[i].name, ""))
+		port = atoi(tmpvalue);
+		if (port <= 0 || port >= 65535)
 		{
-			// End of options
-			break;
+			fprintf(stderr, "Invalid port specification: %s\n", tmpvalue);
+			return 1;
 		}
-		if (!strcmp(config_opts[i].name, "port"))
+	}
+	if ((tmpvalue = config_opts->get(config_opts, "proto")) != NULL)
+	{
+		strncpy(proto, tmpvalue, sizeof(proto));
+		proto[sizeof(proto)-1] = 0;
+		if (!strcmp(proto, "tcp"))
 		{
-			port = atoi(config_opts[i].value);
-			if (port <= 0 || port >= 65535)
-			{
-				fprintf(stderr, "Invalid port specification: %s\n", config_opts[i].value);
-				return 1;
-			}
+			socket_type = SOCK_STREAM;
 		}
-		else if (!strcmp(config_opts[i].name, "proto"))
+		else if (!strcmp(proto, "udp"))
 		{
-			strncpy(proto, config_opts[i].value, sizeof(proto));
-			proto[sizeof(proto)-1] = 0;
-			if (!strcmp(proto, "tcp"))
-			{
-				socket_type = SOCK_STREAM;
-			}
-			else if (!strcmp(proto, "udp"))
-			{
-				socket_type = SOCK_DGRAM;
-			}
-			else
-			{
-				fprintf(stderr, "Invalid proto specification '%s'. Must be one of: tcp, udp\n", config_opts[i].value);
-				return 1;
-			}
-		}
-		else if (!strcmp(config_opts[i].name, "worker_model"))
-		{
-			if (!strcmp(config_opts[i].value, "single"))
-			{
-				worker_model = DISPATCHER_WORKER_MODEL_SINGLE;
-			}
-			else if (!strcmp(config_opts[i].value, "postfork"))
-			{
-				worker_model = DISPATCHER_WORKER_MODEL_POSTFORK;
-			}
-			else if (!strcmp(config_opts[i].value, "prefork"))
-			{
-				worker_model = DISPATCHER_WORKER_MODEL_PREFORK;
-			}
-			else if (!strcmp(config_opts[i].value, "thread"))
-			{
-				worker_model = DISPATCHER_WORKER_MODEL_THREAD;
-			}
-			else
-			{
-				fprintf(stderr, "Invalid worker_model specification: %s\n", config_opts[i].value);
-				return 1;
-			}
-		}
-		else if (!strcmp(config_opts[i].name, "num_workers"))
-		{
-			num_workers = atoi(config_opts[i].value);
-			if (num_workers <= 0 || num_workers > 200)
-			{
-				fprintf(stderr, "Invalid num_workers specification: %s\n", config_opts[i].value);
-				return 1;
-			}
+			socket_type = SOCK_DGRAM;
 		}
 		else
 		{
-			fprintf(stderr, "Unsupported option: %s\n", config_opts[i].name);
+			fprintf(stderr, "Invalid proto specification '%s'. Must be one of: tcp, udp\n", tmpvalue);
+			return 1;
+		}
+	}
+	if ((tmpvalue = config_opts->get(config_opts, "worker_model")) != NULL)
+	{
+		if (!strcmp(tmpvalue, "single"))
+		{
+			worker_model = DISPATCHER_WORKER_MODEL_SINGLE;
+		}
+		else if (!strcmp(tmpvalue, "postfork"))
+		{
+			worker_model = DISPATCHER_WORKER_MODEL_POSTFORK;
+		}
+		else if (!strcmp(tmpvalue, "prefork"))
+		{
+			worker_model = DISPATCHER_WORKER_MODEL_PREFORK;
+		}
+		else if (!strcmp(tmpvalue, "thread"))
+		{
+			worker_model = DISPATCHER_WORKER_MODEL_THREAD;
+		}
+		else
+		{
+			fprintf(stderr, "Invalid worker_model specification: %s\n", tmpvalue);
+			return 1;
+		}
+	}
+	if ((tmpvalue = config_opts->get(config_opts, "num_workers")) != NULL)
+	{
+		num_workers = atoi(tmpvalue);
+		if (num_workers <= 0 || num_workers > 200)
+		{
+			fprintf(stderr, "Invalid num_workers specification: %s\n", tmpvalue);
 			return 1;
 		}
 	}
