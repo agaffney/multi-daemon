@@ -52,15 +52,10 @@ int config_parse_file(char *configfile, char *service, Hash * config_opts)
 			}
 			continue;
 		}
-
 		// Try to parse as a key=value pair
-		char *key = strtok(buf, "=");
-		if (key == NULL)
-		{
-			return config_parse_error(configfile, buf, linenum);
-		}
-		char *value = strtok(NULL, "");
-		if (value == NULL)
+		char key[100];
+		char value[1024];
+		if (sscanf(buf, "%99[^=]=%1023s", key, value) < 2)
 		{
 			return config_parse_error(configfile, buf, linenum);
 		}

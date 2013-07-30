@@ -100,21 +100,15 @@ int main(int argc, char *argv[])
 		// Parse remaining arguments as key/value pairs
 		for(;optind < argc;optind++)
 		{
-			char *firstpart = strtok(argv[optind], "=");
-			if (firstpart == NULL)
+			char key[100];
+			char value[1024];
+			if (sscanf(argv[optind], "%99[^=]=%1023s", key, value) < 2)
 			{
 				fprintf(stderr, "Argument does not appear to be a key/value pair: %s\n\n", argv[optind]);
 				usage();
 				return 1;
 			}
-			char *secondpart = strtok(NULL, "");
-			if (secondpart == NULL)
-			{
-				fprintf(stderr, "Argument does not appear to be a key/value pair: %s\n\n", argv[optind]);
-				usage();
-				return 1;
-			}
-			config_opts->set(config_opts, firstpart, secondpart);
+			config_opts->set(config_opts, key, value);
 		}
 	}
 
