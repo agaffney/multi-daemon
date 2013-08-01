@@ -13,6 +13,18 @@ int init_parse_config_error(char *configfile, char *line, int linenum)
 	return -1;
 }
 
+int init_parse_config_line(char * line, Hash * config_opts)
+{
+	char key[100];
+	char value[1024];
+	if (sscanf(line, "%99[^=]=%1023s", key, value) < 2)
+	{
+		return 0;
+	}
+	config_opts->set(config_opts, key, value);
+	return 1;
+}
+
 int init_parse_config_file(char *configfile, char *service, Hash * config_opts)
 {
 	FILE *config_fd;

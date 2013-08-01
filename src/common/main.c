@@ -51,7 +51,7 @@ int main(int argc, char *argv[])
 
 	Hash * config_opts = Hash_init();
 
-	while ((optc = getopt_long(argc, argv, "hvdc:p:", longopts, NULL)) != -1) {
+	while ((optc = getopt_long(argc, argv, "hvdc:p:o:", longopts, NULL)) != -1) {
 		switch (optc){
 		case 'h':
 			usage();
@@ -69,6 +69,13 @@ int main(int argc, char *argv[])
 		case 'p':
 			strncpy(pidfile, optarg, sizeof(pidfile));
 			pidfile[sizeof(pidfile)-1] = 0;
+			break;
+		case 'o':
+			if(!init_parse_config_line(optarg, config_opts))
+			{
+				fprintf(stderr, "Argument does not appear to be a key/value pair: %s\n\n", optarg);
+				usage();
+			}
 			break;
 		case '?':
 			printf("\n");
@@ -91,22 +98,6 @@ int main(int argc, char *argv[])
 		{
 			// error parsing config
 			return 1;
-		}
-	}
-
-	if (optind < argc) {
-		// Parse remaining arguments as key/value pairs
-		for(;optind < argc;optind++)
-		{
-			char key[100];
-			char value[1024];
-			if (sscanf(argv[optind], "%99[^=]=%1023s", key, value) < 2)
-			{
-				fprintf(stderr, "Argument does not appear to be a key/value pair: %s\n\n", argv[optind]);
-				usage();
-				return 1;
-			}
-			config_opts->set(config_opts, key, value);
 		}
 	}
 
