@@ -21,6 +21,8 @@ int init_parse_config_line(char * line, Hash * config_opts)
 	{
 		return 0;
 	}
+	// Strip off trailing whitespace
+	rtrim(value);
 	config_opts->set(config_opts, key, value);
 	return 1;
 }
@@ -63,18 +65,12 @@ int init_parse_config_file(char *configfile, char *service, Hash * config_opts)
 			}
 			continue;
 		}
-		// Try to parse as a key=value pair
-		char key[100];
-		char value[1024];
-		if (sscanf(buf, "%99[^=]=%1023s", key, value) < 2)
-		{
-			return init_parse_config_error(configfile, buf, linenum);
-		}
 		if (!strcmp(header, "common") || !strcmp(header, service))
 		{
-			// Strip off trailing whitespace
-			rtrim(value);
-			config_opts->set(config_opts, key, value);
+			if (!init_parse_config_line(buf, config_opts))
+			{
+				return init_parse_config_error(configfile, buf, linenum);
+			}
 		}
 	}
 
