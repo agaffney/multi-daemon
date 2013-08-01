@@ -1,4 +1,4 @@
-#include "config.h"
+#include "init.h"
 #include "main.h"
 #include "util.h"
 
@@ -7,13 +7,13 @@
 #include <errno.h>
 #include <string.h>
 
-int config_parse_error(char *configfile, char *line, int linenum)
+int init_parse_config_error(char *configfile, char *line, int linenum)
 {
 	fprintf(stderr, "Could not parse file '%s'. Error on line %d:\n\n%s", configfile, linenum, line);
 	return -1;
 }
 
-int config_parse_file(char *configfile, char *service, Hash * config_opts)
+int init_parse_config_file(char *configfile, char *service, Hash * config_opts)
 {
 	FILE *config_fd;
 	char buf[1024], header[50];
@@ -47,7 +47,7 @@ int config_parse_file(char *configfile, char *service, Hash * config_opts)
 			// Section header
 			if (!sscanf(buf, "[%49[a-z]]", header))
 			{
-				return config_parse_error(configfile, buf, linenum);
+				return init_parse_config_error(configfile, buf, linenum);
 			}
 			continue;
 		}
@@ -56,7 +56,7 @@ int config_parse_file(char *configfile, char *service, Hash * config_opts)
 		char value[1024];
 		if (sscanf(buf, "%99[^=]=%1023s", key, value) < 2)
 		{
-			return config_parse_error(configfile, buf, linenum);
+			return init_parse_config_error(configfile, buf, linenum);
 		}
 		if (!strcmp(header, "common") || !strcmp(header, service))
 		{

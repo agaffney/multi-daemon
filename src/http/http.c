@@ -1,4 +1,3 @@
-#include "common/config.h"
 #include "common/main.h"
 #include "http.h"
 #include "request.h"

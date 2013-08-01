@@ -1,5 +1,5 @@
-#include "config.h"
 #include "main.h"
+#include "init.h"
 #include "echo/echo.h"
 #include "http/http.h"
 
@@ -84,12 +84,10 @@ int main(int argc, char *argv[])
 		optind++;
 	}
 
-	memset(config_opts, 0, sizeof(config_opts));
-
 	// Parse the config file, if specified
 	if(strcmp(configfile, ""))
 	{
-		if (config_parse_file(configfile, service, config_opts) <= 0)
+		if (init_parse_config_file(configfile, service, config_opts) <= 0)
 		{
 			// error parsing config
 			return 1;
