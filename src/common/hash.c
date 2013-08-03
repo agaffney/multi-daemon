@@ -10,6 +10,7 @@ Hash * Hash_init()
 	hashobj->destroy = _hash_destroy;
 	hashobj->get = _hash_get;
 	hashobj->set = _hash_set;
+	hashobj->unset = _hash_unset;
 	hashobj->has_key = _hash_has_key;
 	hashobj->keys = _hash_keys;
 	int i;
@@ -71,6 +72,31 @@ void _hash_set(Hash * self, char * key, char * value)
 		tmp_list->push(tmp_list, key);
 		tmp_list->push(tmp_list, value);
 		self->_keys->push(self->_keys, key);
+	}
+}
+
+void _hash_unset(Hash * self, char * key)
+{
+	unsigned int hash = _hash_hash(key) % _HASH_TABLE_SIZE;
+	List * tmp_list = self->_table[hash];
+	int i;
+	for (i = 0; i < tmp_list->item_count; i = i + 2)
+	{
+		if (!strcmp(tmp_list->get(tmp_list, i), key))
+		{
+			tmp_list->pop(tmp_list, i);
+			tmp_list->pop(tmp_list, i);
+			// Find and remove from keys
+			for (int j = 0; j < self->_keys->item_count; j++)
+			{
+				if (!strcmp(self->_keys->get(self->_keys, j), key))
+				{
+					self->_keys->pop(self->_keys, j);
+					break;
+				}
+			}
+			break;
+		}
 	}
 }
 
