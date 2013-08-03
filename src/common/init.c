@@ -78,3 +78,89 @@ int init_parse_config_file(char *configfile, char *service, Hash * config_opts)
 
 	return 1;
 }
+
+int init_parse_commandline(Hash * config, struct option * opts, int argc, char **argv)
+{
+	int num_opts = 0;
+	char short_opts[300];
+	struct option longopts[INIT_MAX_OPTS] = {
+		{ "help", no_argument, NULL, 'h' },
+		{ "version", no_argument, NULL, 'v' },
+		{ "debug", no_argument, NULL, 'd' },
+		{ "config", required_argument, NULL, 'c' },
+		{ "pidfile", required_argument, NULL, 'p' },
+		{ "option", required_argument, NULL, 'o' },
+		{ NULL, 0, NULL, 0 }
+	};
+	// Count the default opts
+	while (1)
+	{
+		if (longopts[num_opts].name == NULL)
+		{
+			break;
+		}
+		num_opts++;
+	}
+	// Add additional opts
+	for (int i = 0;; i++)
+	{
+		if (opts[i].name == NULL)
+		{
+			break;
+		}
+		longopts[num_opts++] = opts[i];
+	}
+	// Build short opts string
+	for (int i = 0; i < num_opts; i++)
+	{
+		if (longopts[i].name == NULL)
+		{
+			break;
+		}
+		switch (longopts[i].has_arg)
+		{
+			case no_argument:
+				sprintf(short_opts, "%s%c", short_opts, longopts[i].val);
+				break;
+			case required_argument:
+				sprintf(short_opts, "%s%c:", short_opts, longopts[i].val);
+				break;
+			case optional_argument:
+				sprintf(short_opts, "%s%c::", short_opts, longopts[i].val);
+				break;
+		}
+	}
+	int optc;
+	while ((optc = getopt_long(argc, argv, short_opts, longopts, NULL)) != -1) {
+		if (optc == '?')
+		{
+			// Unknown option
+			return 0;
+		}
+		else
+		{
+			int i = 0;
+			for (; i < num_opts; i++)
+			{
+				if (longopts[i].val == optc)
+				{
+					switch (longopts[i].has_arg)
+					{
+						case no_argument:
+							config->set(config, (char *) longopts[i].name, "1");
+							break;
+						case required_argument:
+							config->set(config, (char *) longopts[i].name, optarg);
+							break;
+						case optional_argument:
+							// This will probably break
+							config->set(config, (char *) longopts[i].name, optarg);
+							break;
+					}
+					break;
+				}
+			}
+		}
+	}
+	return 1;
+}
