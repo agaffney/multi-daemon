@@ -23,6 +23,7 @@ int http_entry(Hash * config_opts)
 			fprintf(stderr, "Invalid port specification: %s\n", tmpvalue);
 			return 1;
 		}
+		config_opts->unset(config_opts, "port");
 	}
 	if ((tmpvalue = config_opts->get(config_opts, "worker_model")) != NULL)
 	{
@@ -47,6 +48,7 @@ int http_entry(Hash * config_opts)
 			fprintf(stderr, "Invalid worker_model specification: %s\n", tmpvalue);
 			return 1;
 		}
+		config_opts->unset(config_opts, "worker_model");
 	}
 	if ((tmpvalue = config_opts->get(config_opts, "num_workers")) != NULL)
 	{
@@ -56,6 +58,17 @@ int http_entry(Hash * config_opts)
 			fprintf(stderr, "Invalid num_workers specification: %s\n", tmpvalue);
 			return 1;
 		}
+		config_opts->unset(config_opts, "num_workers");
+	}
+	List * remaining_keys = config_opts->keys(config_opts);
+	if (remaining_keys->length(remaining_keys) > 0)
+	{
+		fprintf(stderr, "Unrecognized options:\n");
+		for (int i = 0; i < remaining_keys->length(remaining_keys); i++)
+		{
+			fprintf(stderr, "%s\n", remaining_keys->get(remaining_keys, i));
+		}
+		return 1;
 	}
 
 	Socket *sock = Socket_init(0);
