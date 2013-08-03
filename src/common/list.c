@@ -12,6 +12,7 @@ List * List_init()
 	}
 	listobj->destroy = _list_destroy;
 	listobj->push = _list_push;
+	listobj->pop = _list_pop;
 	listobj->get = _list_get;
 	listobj->set = _list_set;
 	listobj->length = _list_length;
@@ -33,6 +34,37 @@ void _list_destroy(List * self)
 		free(tmp_item2);
 	}
 	free(self);
+}
+
+char * _list_pop(List * self, int index)
+{
+	if (index > self->item_count - 1)
+	{
+		return NULL;
+	}
+	if (index == -1)
+	{
+		index = self->item_count - 1;
+	}
+	int i;
+	ListItem * tmp_item = self->items;
+	ListItem * prev_item = NULL;
+	for (i = 0; i < index; i++)
+	{
+		prev_item = tmp_item;
+		tmp_item = tmp_item->next_item;
+	}
+	// Now that we found it, remove it
+	if (index == 0)
+	{
+		self->items = tmp_item->next_item;
+	}
+	else
+	{
+		prev_item->next_item = tmp_item->next_item;
+	}
+	self->item_count--;
+	return tmp_item->value;
 }
 
 char * _list_get(List * self, int index)

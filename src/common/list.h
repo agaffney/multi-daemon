@@ -13,6 +13,7 @@ struct _List {
 	int item_count;
 	void (*destroy)(struct _List *);
 	char * (*get)(struct _List *, int);
+	char * (*pop)(struct _List *, int);
 	void (*set)(struct _List *, int, char *);
 	void (*push)(struct _List *, char *);
 	int (*length)(struct _List *);
@@ -23,6 +24,7 @@ typedef struct _List List;
 List * List_init();
 void _list_destroy();
 char * _list_get(List *, int);
+char * _list_pop(List *, int);
 void _list_set(List *, int, char *);
 void _list_push(List *, char *);
 int _list_length(List *);
