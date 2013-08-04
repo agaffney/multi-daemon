@@ -3,7 +3,6 @@ TARGET=httpd
 include ../Makefile.inc
 
 default: $(TARGET)
-#default: $(OBJECTS)
 all: default
 
 clean:

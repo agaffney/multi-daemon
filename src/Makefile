@@ -3,8 +3,8 @@ SUBDIRS=httpd common
 BUILDDIRS = $(SUBDIRS:%=build-%)
 CLEANDIRS = $(SUBDIRS:%=clean-%)
 
-#default: $(TARGET)
-#all: default
+default:
+all: $(SUBDIRS)
 
 .PHONY: $(SUBDIRS)
 $(SUBDIRS):
