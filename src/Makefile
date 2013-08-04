@@ -6,6 +6,10 @@ CLEANDIRS = $(SUBDIRS:%=clean-%)
 #default: $(TARGET)
 #all: default
 
+.PHONY: $(SUBDIRS)
+$(SUBDIRS):
+	$(MAKE) -C $@
+
 $(BUILDDIRS):
 	$(MAKE) -C $(@:build-%=%)
 
