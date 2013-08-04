@@ -8,7 +8,7 @@
 #include <string.h>
 #include <errno.h>
 
-int http_entry(Hash * config_opts)
+int http_start(Hash * config_opts)
 {
 	int port;
 	int worker_model = DISPATCHER_WORKER_MODEL_SINGLE;

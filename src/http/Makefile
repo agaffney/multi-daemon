@@ -2,12 +2,15 @@ TARGET=httpd
 
 include ../Makefile.inc
 
-#default: $(TARGET)
-default: $(OBJECTS)
+default: $(TARGET)
+#default: $(OBJECTS)
 all: default
 
 clean:
-	-rm -f $(OBJECTS)
+	-rm -f $(OBJECTS) $(TARGET)
 
-$(TARGET): $(OBJECTS)
-	$(CC) $(CFLAGS) $(LIBS) $(OBJS) -o $@
+$(COMMONOBJS):
+	$(MAKE) -C ../common
+
+$(TARGET): $(OBJECTS) $(COMMONOBJS)
+	$(CC) $(CFLAGS) $(LIBS) $(OBJECTS) $(COMMONOBJS) -o $@

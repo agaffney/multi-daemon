@@ -1,19 +1,10 @@
-#include "main.h"
-#include "init.h"
-#include "echo/echo.h"
+#include "common/init.h"
 #include "http/http.h"
 
-#include <getopt.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-
-static const dispatch_table_entry dispatch_table[] = {
-	{ "echo", echo_entry },
-	{ "http", http_entry },
-	{ NULL, NULL }
-};
 
 void cmdline_callback(void * cbarg, int optc, char * optarg, cmdline_opt * opts)
 {
@@ -52,12 +43,7 @@ void cmdline_callback(void * cbarg, int optc, char * optarg, cmdline_opt * opts)
 
 int main(int argc, char *argv[])
 {
-	int i;
 	pid_t child_pid;
-	char service[20] = "";
-
-	// Disable output buffering
-	setbuf(stdout, NULL);
 
 	Hash * config = Hash_init();
 
@@ -73,46 +59,28 @@ int main(int argc, char *argv[])
 
 	init_parse_commandline(opts, argc, argv, cmdline_callback, (void *) config);
 
-	// Grab service from arguments
-	if (optind < argc) {
-		strncpy(service, argv[optind], sizeof(service));
-		service[sizeof(service)-1] = 0;
-		optind++;
-	}
-
 	// Parse the config file, if specified
 	if (config->has_key(config, "configfile"))
 	{
-		if (init_parse_config_file(config->get(config, "configfile"), service, config) <= 0)
+		if (init_parse_config_file(config->get(config, "configfile"), "http", config) <= 0)
 		{
 			// error parsing config
 			return 1;
 		}
 		config->unset(config, "configfile");
 	}
-
-	// Lookup the function to call in the dispatch table
-	for(i=0;;i++)
+	if (!config->has_key(config, "debug"))
 	{
-		if (dispatch_table[i].service == NULL)
+		child_pid = fork();
+		if (child_pid > 0)
 		{
-			fprintf(stderr, "Invalid service type: %s\n\n", service);
-			//usage();
-			return 1;
-		}
-		if (!strcmp(service, dispatch_table[i].service))
-		{
-			if (!config->has_key(config, "debug"))
-			{
-				child_pid = fork();
-				if (child_pid > 0)
-				{
-					// Parent
-					return 0;
-				}
-			}
-			config->unset(config, "debug");
-			return (*dispatch_table[i].func)(config);
+			// Parent
+			return 0;
 		}
 	}
+	else
+	{
+		config->unset(config, "debug");
+	}
+	return http_start(config);
 }
