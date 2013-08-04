@@ -7,4 +7,6 @@
 int init_parse_config_error(char *, char *, int);
 int init_parse_config_file(char *, char *, Hash *);
 int init_parse_config_line(char *, Hash *);
-int init_parse_commandline(Hash *, struct option *, int, char **);
+int init_parse_commandline(Hash *, struct option *, Hash *, int, char **);
+void init_usage(char *, struct option *, Hash *);
+

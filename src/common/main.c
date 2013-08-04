@@ -9,48 +9,25 @@
 #include <string.h>
 #include <unistd.h>
 
-static const struct option longopts[] = {
-	{ "help", no_argument, NULL, 'h' },
-	{ "version", no_argument, NULL, 'v' },
-	{ "debug", no_argument, NULL, 'd' },
-	{ "config", required_argument, NULL, 'c' },
-	{ "pidfile", required_argument, NULL, 'p' },
-	{ NULL, 0, NULL, 0 }
-};
-
 static const dispatch_table_entry dispatch_table[] = {
 	{ "echo", echo_entry },
 	{ "http", http_entry },
 	{ NULL, NULL }
 };
 
-static const char help_string[] =
-	"usage: multi-daemon [OPTIONS] <service>\n\n"
-	"-h, --help       display this help and exit\n"
-	"-v, --version    display version information and exit\n"
-	"-d, --debug      don't fork into the background\n"
-	"-c, --config     the server type to start\n"
-	"-p, --pidfile    the port to run the server on, if not the default\n";
-
-void usage()
-{
-	printf(help_string);
-}
-
 int main(int argc, char *argv[])
 {
-	int optc, i;
+	int i;
 	pid_t child_pid;
-	int debug = 0;
 	char service[20] = "";
-	char pidfile[255] = "";
-	char configfile[255] = "";
 
 	// Disable output buffering
 	setbuf(stdout, NULL);
 
 	Hash * config_opts = Hash_init();
+	init_parse_commandline(config_opts, NULL, NULL, argc, argv);
 
+/*
 	while ((optc = getopt_long(argc, argv, "hvdc:p:o:", longopts, NULL)) != -1) {
 		switch (optc){
 		case 'h':
@@ -83,6 +60,7 @@ int main(int argc, char *argv[])
 			return 1;
 		}
 	}
+*/
 
 	// Grab service from arguments
 	if (optind < argc) {
@@ -92,13 +70,14 @@ int main(int argc, char *argv[])
 	}
 
 	// Parse the config file, if specified
-	if(strcmp(configfile, ""))
+	if (config_opts->has_key(config_opts, "config"))
 	{
-		if (init_parse_config_file(configfile, service, config_opts) <= 0)
+		if (init_parse_config_file(config_opts->get(config_opts, "config"), service, config_opts) <= 0)
 		{
 			// error parsing config
 			return 1;
 		}
+		config_opts->unset(config_opts, "config");
 	}
 
 	// Lookup the function to call in the dispatch table
@@ -107,12 +86,12 @@ int main(int argc, char *argv[])
 		if (dispatch_table[i].service == NULL)
 		{
 			fprintf(stderr, "Invalid service type: %s\n\n", service);
-			usage();
+			//usage();
 			return 1;
 		}
 		if (!strcmp(service, dispatch_table[i].service))
 		{
-			if (!debug)
+			if (!config_opts->has_key(config_opts, "debug"))
 			{
 				child_pid = fork();
 				if (child_pid > 0)
@@ -121,6 +100,7 @@ int main(int argc, char *argv[])
 					return 0;
 				}
 			}
+			config_opts->unset(config_opts, "debug");
 			return (*dispatch_table[i].func)(config_opts);
 		}
 	}
