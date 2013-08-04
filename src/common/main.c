@@ -15,6 +15,41 @@ static const dispatch_table_entry dispatch_table[] = {
 	{ NULL, NULL }
 };
 
+void cmdline_callback(void * cbarg, int optc, char * optarg, cmdline_opt * opts)
+{
+	Hash * config = (Hash *) cbarg;
+	switch (optc)
+	{
+		case '?':
+			// Invalid option
+			init_usage("program", opts);
+			exit(1);
+		case 'h':
+			init_usage("program", opts);
+			exit(0);
+		case 'v':
+			printf("%s %s\n", "multi-daemon", "0.1");
+			exit(0);
+		case 'd':
+			config->set(config, "debug", "1");
+			break;
+		case 'c':
+			config->set(config, "configfile", optarg);
+			break;
+		case 'p':
+			config->set(config, "pidfile", optarg);
+			break;
+		case 'o':
+			if(!init_parse_config_line(optarg, config))
+			{
+				fprintf(stderr, "Argument does not appear to be a key/value pair: %s\n\n", optarg);
+				init_usage("program", opts);
+				exit(1);
+			}
+			break;
+	}
+}
+
 int main(int argc, char *argv[])
 {
 	int i;
@@ -24,43 +59,19 @@ int main(int argc, char *argv[])
 	// Disable output buffering
 	setbuf(stdout, NULL);
 
-	Hash * config_opts = Hash_init();
-	init_parse_commandline(config_opts, NULL, NULL, argc, argv);
+	Hash * config = Hash_init();
 
-/*
-	while ((optc = getopt_long(argc, argv, "hvdc:p:o:", longopts, NULL)) != -1) {
-		switch (optc){
-		case 'h':
-			usage();
-			return 0;
-		case 'v':
-			printf("%s %s\n", "multi-daemon", "0.1");
-			return 0;
-		case 'd':
-			debug = 1;
-			break;
-		case 'c':
-			strncpy(configfile, optarg, sizeof(configfile));
-			configfile[sizeof(configfile)-1] = 0;
-			break;
-		case 'p':
-			strncpy(pidfile, optarg, sizeof(pidfile));
-			pidfile[sizeof(pidfile)-1] = 0;
-			break;
-		case 'o':
-			if(!init_parse_config_line(optarg, config_opts))
-			{
-				fprintf(stderr, "Argument does not appear to be a key/value pair: %s\n\n", optarg);
-				usage();
-			}
-			break;
-		case '?':
-			printf("\n");
-			usage();
-			return 1;
-		}
-	}
-*/
+	cmdline_opt opts[INIT_MAX_OPTS] = {
+		{ { "help", no_argument, NULL, 'h' }, "display usage information and exit" },
+		{ { "version", no_argument, NULL, 'v' }, "display version information and exit" },
+		{ { "debug", no_argument, NULL, 'd' }, "don't fork into the background" },
+		{ { "config", required_argument, NULL, 'c' }, "specifies path to config file" },
+		{ { "pidfile", required_argument, NULL, 'p' }, "specifies path to PID file" },
+		{ { "option", required_argument, NULL, 'o' }, "specifies config option in key=value format" },
+		{ { NULL, 0, NULL, 0 }, "" },
+	};
+
+	init_parse_commandline(opts, argc, argv, cmdline_callback, (void *) config);
 
 	// Grab service from arguments
 	if (optind < argc) {
@@ -70,14 +81,14 @@ int main(int argc, char *argv[])
 	}
 
 	// Parse the config file, if specified
-	if (config_opts->has_key(config_opts, "config"))
+	if (config->has_key(config, "configfile"))
 	{
-		if (init_parse_config_file(config_opts->get(config_opts, "config"), service, config_opts) <= 0)
+		if (init_parse_config_file(config->get(config, "configfile"), service, config) <= 0)
 		{
 			// error parsing config
 			return 1;
 		}
-		config_opts->unset(config_opts, "config");
+		config->unset(config, "configfile");
 	}
 
 	// Lookup the function to call in the dispatch table
@@ -91,7 +102,7 @@ int main(int argc, char *argv[])
 		}
 		if (!strcmp(service, dispatch_table[i].service))
 		{
-			if (!config_opts->has_key(config_opts, "debug"))
+			if (!config->has_key(config, "debug"))
 			{
 				child_pid = fork();
 				if (child_pid > 0)
@@ -100,8 +111,8 @@ int main(int argc, char *argv[])
 					return 0;
 				}
 			}
-			config_opts->unset(config_opts, "debug");
-			return (*dispatch_table[i].func)(config_opts);
+			config->unset(config, "debug");
+			return (*dispatch_table[i].func)(config);
 		}
 	}
 }

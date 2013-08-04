@@ -80,59 +80,37 @@ int init_parse_config_file(char *configfile, char *service, Hash * config_opts)
 	return 1;
 }
 
-void init_usage(char * prog, struct option * opts, Hash * usage)
+void init_usage(char * prog, cmdline_opt * opts)
 {
 	printf("Usage: %s [options]\n\n", prog);
 	for (int i = 0;; i++)
 	{
-		if (opts[i].name == NULL)
+		if (opts[i].opt.name == NULL)
 		{
 			break;
 		}
-		printf("-%c, --%-20s %s\n", opts[i].val, opts[i].name, usage->get(usage, (char *) opts[i].name));
+		printf("-%c, --%-20s %s\n", opts[i].opt.val, opts[i].opt.name, opts[i].helpstring);
 	}
 }
 
-int init_parse_commandline(Hash * config, struct option * extra_opts, Hash * extra_usage, int argc, char **argv)
+int init_parse_commandline(cmdline_opt * opts, int argc, char **argv, void (*callback)(void *, int, char *, cmdline_opt *), void * callback_arg)
 {
 	int num_opts = 0;
 	char short_opts[300];
-	struct option longopts[INIT_MAX_OPTS] = {
-		{ "help", no_argument, NULL, 'h' },
-		{ "version", no_argument, NULL, 'v' },
-		{ "debug", no_argument, NULL, 'd' },
-		{ "config", required_argument, NULL, 'c' },
-		{ "pidfile", required_argument, NULL, 'p' },
-		{ "option", required_argument, NULL, 'o' },
+	struct option longopts[INIT_MAX_OPTS + 1] = {
 		{ NULL, 0, NULL, 0 }
 	};
-	Hash * usage = Hash_init();
-	usage->set(usage, "help", "display usage information and exit");
-	usage->set(usage, "version", "display version information and exit");
-	usage->set(usage, "debug", "don't fork into the background");
-	usage->set(usage, "config", "specifies path to the config file");
-	usage->set(usage, "pidfile", "path to write PID file");
-	usage->set(usage, "option", "specifies a key=value pair configuration option");
-	// Count the default opts
-	while (1)
+	// Fill out longopts
+	if (opts != NULL)
 	{
-		if (longopts[num_opts].name == NULL)
+		for (int i = 0; num_opts < INIT_MAX_OPTS; i++)
 		{
-			break;
-		}
-		num_opts++;
-	}
-	// Add additional opts
-	if (extra_opts != NULL)
-	{
-		for (int i = 0;; i++)
-		{
-			if (extra_opts[i].name == NULL)
+			if (opts[num_opts].opt.name == NULL)
 			{
 				break;
 			}
-			// use memcpy
-			longopts[num_opts++] = extra_opts[i];
+			memcpy(&longopts[num_opts], &opts[num_opts].opt, sizeof(struct option));
+			memset(&longopts[++num_opts], 0, sizeof(struct option));
 		}
 	}
 	// Build short opts string
@@ -157,48 +135,7 @@ int init_parse_commandline(Hash * config, struct option * extra_opts, Hash * ext
 	}
 	int optc;
 	while ((optc = getopt_long(argc, argv, short_opts, longopts, NULL)) != -1) {
-		switch (optc)
-		{
-			case '?':
-				// Unknown option
-				init_usage("program", longopts, usage);
-				_exit(1);
-			case 'h':
-				init_usage("program", longopts, usage);
-				_exit(0);
-			case 'o':
-				if(!init_parse_config_line(optarg, config))
-				{
-					fprintf(stderr, "Argument does not appear to be a key/value pair: %s\n\n", optarg);
-					init_usage("program", longopts, usage);
-				}
-				break;
-			default:
-			{
-				int i = 0;
-				for (; i < num_opts; i++)
-				{
-					if (longopts[i].val == optc)
-					{
-						switch (longopts[i].has_arg)
-						{
-							case no_argument:
-								config->set(config, (char *) longopts[i].name, "1");
-								break;
-							case required_argument:
-								config->set(config, (char *) longopts[i].name, optarg);
-								break;
-							case optional_argument:
-								// This will probably break
-								config->set(config, (char *) longopts[i].name, optarg);
-								break;
-						}
-						break;
-					}
-				}
-				break;
-			}
-		}
+		callback(callback_arg, optc, optarg, opts);
 	}
 	return 1;
 }
