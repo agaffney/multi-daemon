@@ -14,4 +14,4 @@
 *.out
 *.app
 src/multi-daemon
-src/http/httpd
+src/httpd/httpd

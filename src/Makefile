@@ -1,10 +1,7 @@
-SUBDIRS=http echo common
+SUBDIRS=httpd common
 
 BUILDDIRS = $(SUBDIRS:%=build-%)
 CLEANDIRS = $(SUBDIRS:%=clean-%)
-
-SRCS    := $(shell find $(SUBDIRS) -name '*.c')
-OBJS    := $(patsubst %.c,%.o,$(SRCS))
 
 #default: $(TARGET)
 #all: default
@@ -15,6 +12,4 @@ $(BUILDDIRS):
 clean: $(CLEANDIRS)
 $(CLEANDIRS): 
 	$(MAKE) -C $(@:clean-%=%) clean
-
-$(SUBDIRS): $(@:%=build-%)
 

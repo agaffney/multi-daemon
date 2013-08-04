@@ -1,5 +1,4 @@
 #include "init.h"
-#include "main.h"
 #include "util.h"
 
 #include <stdlib.h>
