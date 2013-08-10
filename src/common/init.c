@@ -95,7 +95,9 @@ void init_usage(char * prog, cmdline_opt * opts)
 int init_parse_commandline(cmdline_opt * opts, int argc, char **argv, void (*callback)(void *, int, char *, cmdline_opt *), void * callback_arg)
 {
 	int num_opts = 0;
-	char short_opts[300];
+	int optc;
+	int last_optind = 1;
+	char short_opts[300] = "";
 	struct option longopts[INIT_MAX_OPTS + 1] = {
 		{ NULL, 0, NULL, 0 }
 	};
@@ -132,8 +134,24 @@ int init_parse_commandline(cmdline_opt * opts, int argc, char **argv, void (*cal
 				break;
 		}
 	}
-	int optc;
+	// Disable getopt's error output
+	opterr = 0;
 	while ((optc = getopt_long(argc, argv, short_opts, longopts, NULL)) != -1) {
+		if (optc == '?')
+		{
+			// Invalid option
+			if (optopt)
+			{
+				// Bad short option
+				printf("Invalid option: -%c\n\n", optopt);
+			}
+			else
+			{
+				// Bad long option
+				printf("Invalid option: %s\n\n", argv[last_optind]);
+			}
+		}
+		last_optind = optind;
 		callback(callback_arg, optc, optarg, opts);
 	}
 	return 1;
