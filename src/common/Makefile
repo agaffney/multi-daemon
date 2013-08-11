@@ -5,3 +5,4 @@ all: default
 
 clean:
 	-rm -f $(OBJECTS)
+
