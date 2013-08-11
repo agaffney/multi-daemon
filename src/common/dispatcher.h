@@ -18,6 +18,7 @@ struct _dispatcher_callback_info {
 	Socket * sock;
 	void * data[5];
 	int extra_flag;
+	void * cbarg;
 };
 
 typedef struct _dispatcher_callback_info dispatcher_callback_info;
@@ -30,7 +31,7 @@ struct _Dispatcher {
 	int _worker_model;
 	int _num_workers;
 	void (*destroy)(struct _Dispatcher *);
-	int (*add_listener)(struct _Dispatcher *, Socket *, dispatcher_callback_func, dispatcher_callback_func, dispatcher_callback_func);
+	int (*add_listener)(struct _Dispatcher *, Socket *, dispatcher_callback_func, dispatcher_callback_func, dispatcher_callback_func, void *);
 	int (*run)(struct _Dispatcher *);
 };
 
@@ -41,6 +42,7 @@ struct _dispatcher_listener {
 	dispatcher_callback_func poll_callback;
 	dispatcher_callback_func run_callback;
 	dispatcher_callback_func cleanup_callback;
+	void * cbarg;
 };
 
 typedef struct _dispatcher_listener dispatcher_listener;
@@ -49,13 +51,14 @@ struct _dispatcher_worker_info {
 	int worker_num;
 	Dispatcher * dispatcher;
 	sem_t * poll_sem;
+	void * cbarg;
 };
 
 typedef struct _dispatcher_worker_info dispatcher_worker_info;
 
 Dispatcher * Dispatcher_init(int, int);
 void _dispatcher_destroy(Dispatcher *);
-int _dispatcher_add_listener(Dispatcher *, Socket *, dispatcher_callback_func, dispatcher_callback_func, dispatcher_callback_func);
+int _dispatcher_add_listener(Dispatcher *, Socket *, dispatcher_callback_func, dispatcher_callback_func, dispatcher_callback_func, void *);
 int _dispatcher_run(Dispatcher *);
 void * _dispatcher_worker_run(void *);
 int _dispatcher_build_listener_epoll_set(Dispatcher *);

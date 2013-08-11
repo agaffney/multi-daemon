@@ -32,7 +32,7 @@ void _dispatcher_destroy(Dispatcher * self)
 	free(self);
 }
 
-int _dispatcher_add_listener(Dispatcher * self, Socket * sock, dispatcher_callback_func poll_callback, dispatcher_callback_func run_callback, dispatcher_callback_func cleanup_callback)
+int _dispatcher_add_listener(Dispatcher * self, Socket * sock, dispatcher_callback_func poll_callback, dispatcher_callback_func run_callback, dispatcher_callback_func cleanup_callback, void * cbarg)
 {
 	if (self->_listener_count >= _DISPATCHER_MAX_LISTENERS)
 	{
@@ -196,7 +196,7 @@ void * _dispatcher_worker_run(void * arg)
 				dispatcher_listener * tmp_listener = self->_listeners[j];
 				if (tmp_listener->sock->socket == events[i].data.fd)
 				{
-					dispatcher_callback_info cb_info = { self, tmp_listener->sock, {} };
+					dispatcher_callback_info cb_info = { self, tmp_listener->sock, {}, 0, tmp_listener->cbarg };
 					if (tmp_listener->poll_callback(&cb_info))
 					{
 						// Something went wrong in the poll_callback

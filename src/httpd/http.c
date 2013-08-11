@@ -91,7 +91,7 @@ int http_start(Hash * config_opts)
 	}
 
 	Dispatcher * disp = Dispatcher_init(worker_model, num_workers);
-	disp->add_listener(disp, sock, http_dispatcher_poll_callback, http_dispatcher_run_callback, http_dispatcher_cleanup_callback);
+	disp->add_listener(disp, sock, http_dispatcher_poll_callback, http_dispatcher_run_callback, http_dispatcher_cleanup_callback, NULL);
 	disp->run(disp);
 
 	disp->destroy(disp);
