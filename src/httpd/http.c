@@ -6,6 +6,10 @@
 #include <string.h>
 #include <errno.h>
 
+// This is here so that MAP_ANONYMOUS is usable
+#define __USE_MISC
+#include <sys/mman.h>
+
 // This define is here so that we can use realpath()
 #define __USE_BSD
 #include <stdlib.h>
@@ -16,6 +20,9 @@ int http_start(Hash * config_opts)
 	int worker_model = DISPATCHER_WORKER_MODEL_SINGLE;
 	int num_workers = 5;
 	char * tmpvalue;
+
+	// Allocate in shared memory
+	http_global_info * global_info = mmap(NULL, sizeof(http_global_info), PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0);
 
 	if ((tmpvalue = config_opts->get(config_opts, "port")) != NULL)
 	{
@@ -65,7 +72,9 @@ int http_start(Hash * config_opts)
 	if ((tmpvalue = config_opts->get(config_opts, "document_root")) != NULL)
 	{
 		char * normpath = realpath(tmpvalue, NULL);
-		// Stick realpath in whatever struct holds global data and gets passed to add_listener()
+		strncpy(global_info->docroot, normpath, HTTP_DOCROOT_SIZE);
+		global_info->docroot[HTTP_DOCROOT_SIZE-1] = 0;
+		config_opts->unset(config_opts, "document_root");
 	}
 	List * remaining_keys = config_opts->keys(config_opts);
 	if (remaining_keys->length(remaining_keys) > 0)
@@ -99,7 +108,7 @@ int http_start(Hash * config_opts)
 	}
 
 	Dispatcher * disp = Dispatcher_init(worker_model, num_workers);
-	disp->add_listener(disp, sock, http_dispatcher_poll_callback, http_dispatcher_run_callback, http_dispatcher_cleanup_callback, NULL);
+	disp->add_listener(disp, sock, http_dispatcher_poll_callback, http_dispatcher_run_callback, http_dispatcher_cleanup_callback, global_info);
 	disp->run(disp);
 
 	disp->destroy(disp);

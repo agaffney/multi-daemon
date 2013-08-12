@@ -17,7 +17,7 @@ all:
 .SECONDEXPANSION:
 .PHONY: $(SUBDIRS)
 
-$(TARGETS): build-common $$(patsubst %,build-%,$$(@)) $$@/$$@
+$(TARGETS): clean-common clean-$$@ build-common $$(patsubst %,build-%,$$(@)) $$@/$$@
 
 # foo/foo targets
 $(TARGETS:%=%/%):
