@@ -3,9 +3,12 @@
 #include "response.h"
 
 #include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
 #include <errno.h>
+
+// This define is here so that we can use realpath()
+#define __USE_BSD
+#include <stdlib.h>
 
 int http_start(Hash * config_opts)
 {
@@ -58,6 +61,11 @@ int http_start(Hash * config_opts)
 			return 1;
 		}
 		config_opts->unset(config_opts, "num_workers");
+	}
+	if ((tmpvalue = config_opts->get(config_opts, "document_root")) != NULL)
+	{
+		char * normpath = realpath(tmpvalue, NULL);
+		// Stick realpath in whatever struct holds global data and gets passed to add_listener()
 	}
 	List * remaining_keys = config_opts->keys(config_opts);
 	if (remaining_keys->length(remaining_keys) > 0)
