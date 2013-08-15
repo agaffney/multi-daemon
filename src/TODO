@@ -5,4 +5,10 @@ common
  - each daemon has its own test dir
  - top level Makefile has auto <daemon>-test targets that run 'make -C <daemon> test'
  - 'make test' at global level depends on all auto <daemon>-auto targets
+* make list/hash get/set functions have an optional extra argument specifying data type
+ - default to HASH_TYPE_STRING
+ - string type will allocate memory and copy
+ - copy type will allocate memory and copy with size specified by an additional function argument
+ - nocopy type will just store the pointer
+ - useful for maintaining list of callback functions for different phases of the request handling
 
