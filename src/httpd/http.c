@@ -156,7 +156,7 @@ int http_dispatcher_run_callback(dispatcher_callback_info * cb_info)
 		HttpResponse * resp = HttpResponse_init();
 		strcpy(resp->http_version, req->http_version);
 		resp->set_status(resp, 200);
-		resp->headers->set(resp->headers, "Content-length", "0");
+		resp->headers->set(resp->headers, "Content-length", "0", LIST_TYPE_STRING);
 		resp->output(resp, outbuf, sizeof(outbuf));
 		sock->write(sock, outbuf, strlen(outbuf));
 		req->destroy(req);

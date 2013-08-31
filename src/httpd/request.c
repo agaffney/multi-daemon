@@ -84,7 +84,7 @@ int _http_request_parse(HttpRequest * self, char * buf)
 				return 0;
 			}
 			ltrim(value);
-			self->headers->set(self->headers, key, value);
+			self->headers->set(self->headers, key, value, LIST_TYPE_STRING);
 //			printf("Header: '%s' = '%s'\n", key, value);
 		}
 		free(line);

@@ -30,7 +30,10 @@ void _list_destroy(List * self)
 		// Move to next link in the chain
 		tmp_item = tmp_item->next_item;
 		// Free memory for current link in the chain
-		free(tmp_item2->value);
+		if (tmp_item2->type == LIST_TYPE_STRING)
+		{
+			free(tmp_item2->value);
+		}
 		free(tmp_item2);
 	}
 	free(self);
@@ -82,7 +85,7 @@ char * _list_get(List * self, int index)
 	return tmp_item->value;
 }
 
-void _list_set(List * self, int index, char * value)
+void _list_set(List * self, int index, void * value, int type)
 {
 	int i;
 	ListItem * tmp_item = self->items;
@@ -92,18 +95,28 @@ void _list_set(List * self, int index, char * value)
 	}
 	if (tmp_item->value != NULL)
 	{
-		// Free memory for old value
-		free(tmp_item->value);
+		// Free memory for old value if we allocated it
+		if (tmp_item->type == LIST_TYPE_STRING)
+		{
+			free(tmp_item->value);
+		}
 	}
-	tmp_item->value = (char *)calloc(1, strlen(value) + 1);
-	strcpy(tmp_item->value, value);
+	switch (type)
+	{
+		case LIST_TYPE_STRING:
+			tmp_item->value = (char *)calloc(1, strlen(value) + 1);
+			strcpy(tmp_item->value, value);
+			break;
+		case LIST_TYPE_POINTER:
+			tmp_item->value = value;
+			break;
+	}
+	tmp_item->type = type;
 }
 
-void _list_push(List * self, char * value)
+void _list_push(List * self, void * value, int type)
 {
 	ListItem * new_item = (ListItem *)calloc(1, sizeof(ListItem));
-	new_item->value = (char *)calloc(1, strlen(value) + 1);
-	strcpy(new_item->value, value);
 	if (self->item_count == 0)
 	{
 		self->items = new_item;
@@ -119,6 +132,7 @@ void _list_push(List * self, char * value)
 		tmp_item->next_item = new_item;
 	}
 	self->item_count++;
+	_list_set(self, self->item_count - 1, value, type);
 }
 
 int _list_length(List * self)

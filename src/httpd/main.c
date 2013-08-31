@@ -22,13 +22,13 @@ void cmdline_callback(void * cbarg, int optc, char * optarg, cmdline_opt * opts)
 			printf("%s %s\n", "multi-daemon", "0.1");
 			exit(0);
 		case 'd':
-			config->set(config, "debug", "1");
+			config->set(config, "debug", "1", LIST_TYPE_STRING);
 			break;
 		case 'c':
-			config->set(config, "configfile", optarg);
+			config->set(config, "configfile", optarg, LIST_TYPE_STRING);
 			break;
 		case 'p':
-			config->set(config, "pidfile", optarg);
+			config->set(config, "pidfile", optarg, LIST_TYPE_STRING);
 			break;
 		case 'o':
 			if(!init_parse_config_line(optarg, config))

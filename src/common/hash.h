@@ -10,7 +10,7 @@ struct _Hash {
 	List * _keys;
 	void (*destroy)(struct _Hash *);
 	char * (*get)(struct _Hash *, char *);
-	void (*set)(struct _Hash *, char *, char *);
+	void (*set)(struct _Hash *, char *, void *, int);
 	void (*unset)(struct _Hash *, char *);
 	int (*has_key)(struct _Hash *, char *);
 	List * (*keys)(struct _Hash *);
@@ -21,7 +21,7 @@ typedef struct _Hash Hash;
 Hash * Hash_init();
 void _hash_destroy();
 unsigned int _hash_hash(char *);
-void _hash_set(Hash *, char *, char *);
+void _hash_set(Hash *, char *, void *, int);
 void _hash_unset(Hash *, char *);
 char * _hash_get(Hash *, char *);
 int _hash_has_key(Hash *, char *);

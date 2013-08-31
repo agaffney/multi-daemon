@@ -51,7 +51,7 @@ unsigned int _hash_hash(char * str)
 	return hash;
 }
 
-void _hash_set(Hash * self, char * key, char * value)
+void _hash_set(Hash * self, char * key, void * value, int type)
 {
 	unsigned int hash = _hash_hash(key) % _HASH_TABLE_SIZE;
 	List * tmp_list = self->_table[hash];
@@ -62,16 +62,16 @@ void _hash_set(Hash * self, char * key, char * value)
 		{
 			if (!strcmp(tmp_list->get(tmp_list, i), key))
 			{
-				tmp_list->set(tmp_list, i + 1, value);
+				tmp_list->set(tmp_list, i + 1, value, type);
 				break;
 			}
 		}
 	}
 	else
 	{
-		tmp_list->push(tmp_list, key);
-		tmp_list->push(tmp_list, value);
-		self->_keys->push(self->_keys, key);
+		tmp_list->push(tmp_list, key, LIST_TYPE_STRING);
+		tmp_list->push(tmp_list, value, type);
+		self->_keys->push(self->_keys, key, LIST_TYPE_STRING);
 	}
 }
 

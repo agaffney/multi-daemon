@@ -23,7 +23,7 @@ int init_parse_config_line(char * line, Hash * config_opts)
 	}
 	// Strip off trailing whitespace
 	rtrim(value);
-	config_opts->set(config_opts, key, value);
+	config_opts->set(config_opts, key, value, LIST_TYPE_STRING);
 	return 1;
 }
 
