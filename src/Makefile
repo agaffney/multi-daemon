@@ -9,7 +9,7 @@ CLEANDIRS = $(SUBDIRS:%=clean-%)
 COMMONOBJS = $(patsubst %.c, %.o, $(wildcard common/*.c))
 
 default:
-all:
+all: $(TARGETS)
 
 # Cancel default rule for compiling
 %.o: %.c
